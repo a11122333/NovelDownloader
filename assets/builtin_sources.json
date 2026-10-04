@@ -1,0 +1,66 @@
+[
+  {
+    "name": "啃书小说",
+    "charset": "utf-8",
+    "baseUrl": "http://www.kenshuzw.la",
+    "searchUrl": "http://www.kenshuzw.la/modules/article/search.php?area=2&searchkey={{key}}&page={{page}}",
+    "listRule": "<h3><a href=\"([^\"]+)\"[^>]*>([^<]+)</a></h3>\\s*<p class=\"author\"><span class=\"type\">作者：</span>([^<]+)</p>",
+    "chapterList": "<li><span><a href=\"([^\"]+)\">([^<]+)</a></span></li>",
+    "contentRule": "<div class=\"article-con\">([\\s\\S]*?)</div></div>",
+    "replace": [["<br\\s*/?>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "], ["最新网址.*", ""]],
+    "tocUrl": "{{book}}0/"
+  },
+  {
+    "name": "爱下书网",
+    "charset": "utf-8",
+    "baseUrl": "http://www.aixiashu.la/",
+    "searchUrl": "http://www.aixiashu.la/modules/article/search.php?searchkey={{key}}",
+    "listRule": "<tr>\\s*<td class=\"even\"[^>]*><a href=\"([^\"]+)\"[^>]*>([^<]+)</a>.*?<td class=\"even\"[^>]*>([^<]+)</td>",
+    "chapterList": "(?:\\A[\\s\\S]*?正文</dt>\\s*)?<dd><a href=\"([^\"]+)\">([^<]+)</a></dd>",
+    "contentRule": "<div id=\"content\">([\\s\\S]*?)</div>",
+    "replace": [["<br\\s*/?>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "]]
+  },
+  {
+    "name": "零点看书",
+    "charset": "utf-8",
+    "baseUrl": "http://23.225.143.232",
+    "searchUrl": "http://23.225.143.232/ar.php?keyWord={{key}}",
+    "listRule": "<li>\\s*<span class=\"s1\"[^>]*>[^<]*</span>\\s*<span class=\"s2\">\\s*<a href=\"([^\"]+)\"[^>]*>([^<]+)</a>.*?<span class=\"s4\"[^>]*>([^<]+)</span>",
+    "chapterList": "(?:\\A[\\s\\S]*?正文</h2>[\\s\\S]*?<ul class=\"section-list[^\"]*\">\\s*)?<li><a href=\"([^\"]+)\">([^<]+)</a></li>",
+    "contentRule": "<div class=\"content\" id=\"content\">\\s*(?:<h1[^>]*>[\\s\\S]*?</h1>\\s*)?(?:[^<]*?\\(第\\d+/\\d+页\\)\\s*)?([\\s\\S]*?)</div>",
+    "contentPages": "<a[^>]*href=\"([^\"]+)\"[^>]*>下一页</a>",
+    "replace": [["（本章未完[^）]*）", ""], ["<br\\s*/?>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "]],
+    "tocPages": "<option value=\"([^\"]+)\""
+  },
+  {
+    "name": "爱看书城",
+    "charset": "utf-8",
+    "baseUrl": "http://m.2kk.la",
+    "searchUrl": "http://m.2kk.la/search.php?searchkey={{key}}",
+    "listRule": "<div class=\"hot_sale\">\\s*<a href=['\"]([^'\"]+)['\"]>.*?<p class=\"title\">([^<]*)</p>\\s*<p class=\"author\">(?:作者：)?([^<]*)</p>",
+    "chapterList": "<p[^>]*>\\s*<a[^>]*href=['\"]([^'\"]+\\.html)['\"][^>]*>([^<]*)</a>\\s*</p>",
+    "contentRule": "<div id=\"chaptercontent\"[^>]*>.*?<p[^>]*>(.*?)</p>",
+    "replace": [["<br\\s*/?>", "\n"], ["（本章未完[^）]*）", ""], ["\\(第[^)]*页\\)", ""], ["<[^>]+>", ""], ["&nbsp;", " "]],
+    "tocUrl": "{{book}}all.html"
+  },
+  {
+    "name": "书客吧",
+    "charset": "utf-8",
+    "baseUrl": "https://www.shuke8.cc",
+    "searchUrl": "https://www.shuke8.cc/so/{{key}}",
+    "listRule": "<li>\\s*<div class=\"img_span\">\\s*<a href=\"([^\"]+)\">\\s*<img[^>]*?title=\"([^\"]+)\"[\\s\\S]*?<a href=\"/author/[^\"]*\"><i></i>([^<]+)</a>",
+    "chapterList": "(?:\\A[\\s\\S]*?全部章节[\\s\\S]*?<ul>\\s*)?<li data=\"1\"><a href=\"([^\"]+)\"[^>]*>([^<]+)</a></li>",
+    "contentRule": "<div id=\"bodybox\">([\\s\\S]*?)</div>",
+    "replace": [["<br\\s*/?>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "], ["[^.]+侵权必究", ""], ["\\uFEFF", ""]]
+  },
+  {
+    "name": "独步小说",
+    "charset": "utf-8",
+    "baseUrl": "https://www.dbxsn.com",
+    "searchUrl": "https://www.dbxsn.com/plus/search.php?q={{key}}",
+    "listRule": "<tr>\\s*<td><a href=\"([^\"]+)\"[^>]*>\\s*《?([^《》<>]*)》?\\s*</a>\\s*</td>\\s*<td>([^<]*)</td>",
+    "chapterList": "<div class=\"col-md-6 item\">\\s*<a href=\"([^\"]+)\"[^>]*>([^<]*)</a>\\s*</div>(?!.*<div id=\"all-chapter\">)",
+    "contentRule": "<div id=\"cont-body\"[^>]*>\\s*(?:<script[^>]*>.*?</script>\\s*)?(.*?)</div>",
+    "replace": [["<br\\s*/?>", "\n"], ["</p>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "]]
+  }
+]
