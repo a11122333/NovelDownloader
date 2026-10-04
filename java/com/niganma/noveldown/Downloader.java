@@ -237,7 +237,27 @@ public final class Downloader {
         if (s.puaDecode) {
             text = FanqieCodec.decode(ctx, text, s.puaMode);
         }
-        return Rules.tidy(text);
+        text = Rules.tidy(text);
+        if (s.paragraphIndent != null && !s.paragraphIndent.isEmpty()) {
+            text = indentParagraphs(text, s.paragraphIndent);
+        }
+        return text;
+    }
+
+    /** 给每个非空段落前加上缩进前缀（如两个全角空格）。 */
+    private static String indentParagraphs(String text, String indent) {
+        String[] lines = text.split("\n", -1);
+        StringBuilder sb = new StringBuilder(text.length() + lines.length * indent.length());
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) {
+                sb.append('\n');
+            }
+            if (!lines[i].isEmpty()) {
+                sb.append(indent);
+            }
+            sb.append(lines[i]);
+        }
+        return sb.toString();
     }
 
     /** 后台下载整本书并保存为明文 txt；chapters 用 threads 个线程并发下载。回调均在主线程。 */

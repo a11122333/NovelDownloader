@@ -105,6 +105,7 @@ bash build.sh
 | `chapterUrlTemplate` | 章节 URL 模板，`{{id}}` 替换为 `chapterIdRule` 取到的章节 ID |
 | `bookUrlTemplate` | 搜索结果 URL 模板，`{{id}}` 替换为 `listRule` 第 1 组（接口只返回书籍ID 时使用） |
 | `jsonEscape` | 正文是否为 JSON 转义字符串（需先反转义再清洗），默认 `false` |
+| `paragraphIndent` | 导出时给每个非空段落添加的缩进前缀（如两个全角空格 `　　`） |
 | `puaDecode` | 正文是否需要「番茄式」PUA 字体解码，默认 `false` |
 | `puaMode` | PUA 解码模式（对应内置解码表下标），默认 `0` |
 
@@ -125,11 +126,14 @@ bash build.sh
   "chapterUrlTemplate": "http://101.35.133.34:5000/api/raw_full?item_id={{id}}",
   "contentRule": "\"content\":\"((?:[^\"\\\\]|\\\\.)*)\"",
   "jsonEscape": true,
+  "paragraphIndent": "　　",
   "replace": [["<header>[\\s\\S]*?</header>", ""], ["<footer>[\\s\\S]*?</footer>", ""], ["</p>", "\n"], ["<[^>]+>", ""]]
 }
 ```
 
 流程：搜索经第三方接口拿到 `book_id` → 用 `bookUrlTemplate` 打开官方书页 → `chapterIdRule` 取全部章节 → 每章 URL 指向第三方接口 `raw_full` → 反转义并清洗得到正文。
+
+> 注：番茄正文在原文里就是「一句一段」（作者分段，段内多为 1 句），因此导出的 TXT 会呈现为每段一行；`paragraphIndent` 会给每段加上两个全角空格的段首缩进。
 
 > 注：番茄书页对移动 UA 只返回「最后 50 章」且字段顺序不同，故本源用 `userAgent` 指定桌面 UA 以拿到完整目录；`chapterIdRule` 也写成与字段顺序无关。
 
@@ -168,7 +172,7 @@ bash build.sh
 
 最新 APK 通过 [Releases](https://github.com/a11122333/NovelDownloader/releases) 页面分发，请前往下载对应版本的 `NovelDownloader-<版本>.apk`。
 
-当前版本：**1.14**
+当前版本：**1.15**
 
 - 最低系统版本：Android 7.0（API 24），目标 API 34
 - 安装需在系统中允许「安装未知来源应用」

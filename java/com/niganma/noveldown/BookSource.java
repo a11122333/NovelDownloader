@@ -74,6 +74,8 @@ public class BookSource {
     public int puaMode = 0;
     /** 正文是否为 JSON 转义字符串（需先反转义再清洗）。 */
     public boolean jsonEscape = false;
+    /** 导出时给每个非空段落添加的前缀（如两个全角空格「　　」）。 */
+    public String paragraphIndent = "";
     public List<String[]> replace = new ArrayList<>();
 
     /** 是否为「索引式章节」书源（无需搜索、靠书籍链接直接打开）。 */
@@ -118,6 +120,7 @@ public class BookSource {
         s.puaDecode = o.optBoolean("puaDecode", false);
         s.puaMode = o.optInt("puaMode", 0);
         s.jsonEscape = o.optBoolean("jsonEscape", false);
+        s.paragraphIndent = o.optString("paragraphIndent", "");
         JSONObject idx = o.optJSONObject("indexChapters");
         if (idx != null) {
             IndexChapters ix = new IndexChapters();
@@ -169,6 +172,9 @@ public class BookSource {
             if (puaDecode) {
                 o.put("puaDecode", true);
                 o.put("puaMode", puaMode);
+            }
+            if (!paragraphIndent.isEmpty()) {
+                o.put("paragraphIndent", paragraphIndent);
             }
             if (!tocUrl.isEmpty()) {
                 o.put("tocUrl", tocUrl);
