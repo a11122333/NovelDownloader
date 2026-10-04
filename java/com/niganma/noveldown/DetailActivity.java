@@ -32,10 +32,12 @@ public class DetailActivity extends Activity {
     private static final String KEY_THREADS = "download_threads";
     private static final String KEY_FROM = "download_from";
     private static final String KEY_TO = "download_to";
+    private static final String KEY_CONV = "download_conv";
 
     private BookSource source;
     private String bookName, author, bookUrl;
     private int threads = Downloader.DEFAULT_THREADS;
+    private int convMode = CharConv.NONE;
 
     private TextView status;
     private ProgressBar bar;
@@ -44,6 +46,7 @@ public class DetailActivity extends Activity {
     private List<Chapter> chapters;
     private List<Chapter> pendingSelection;
     private int pendingThreads;
+    private int pendingConv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +59,7 @@ public class DetailActivity extends Activity {
         source = findSource(sourceName);
         threads = Downloader.clampThreads(
                 prefs().getInt(KEY_THREADS, Downloader.DEFAULT_THREADS));
+        convMode = clampConv(prefs().getInt(KEY_CONV, CharConv.NONE));
         setContentView(buildUi());
         startLoadChapters();
     }
@@ -250,6 +254,35 @@ public class DetailActivity extends Activity {
         etThreads.setSelection(etThreads.getText().length());
         box.addView(etThreads);
 
+        box.addView(UiKit.fieldLabel(this, "文字转换"));
+        final int[] conv = {convMode};
+        final int[] modes = {CharConv.NONE, CharConv.T2S, CharConv.S2T};
+        final String[] convNames = {"不转换", "繁 → 简", "简 → 繁"};
+        final TextView[] convChips = new TextView[3];
+        LinearLayout convRow = new LinearLayout(this);
+        convRow.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams crlp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        crlp.topMargin = UiUtil.dp(this, 2);
+        convRow.setLayoutParams(crlp);
+        for (int i = 0; i < 3; i++) {
+            final int idx = i;
+            TextView chip = convChip(convNames[i], conv[0] == modes[i]);
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            clp.rightMargin = UiUtil.dp(this, 8);
+            chip.setLayoutParams(clp);
+            chip.setOnClickListener(v -> {
+                conv[0] = modes[idx];
+                for (int k = 0; k < 3; k++) {
+                    styleConvChip(convChips[k], conv[0] == modes[k]);
+                }
+            });
+            convChips[i] = chip;
+            convRow.addView(chip);
+        }
+        box.addView(convRow);
+
         TextWatcher watcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int a, int b, int c) {
@@ -286,13 +319,16 @@ public class DetailActivity extends Activity {
                     }
                     int th = Downloader.clampThreads(
                             parseInt(etThreads.getText().toString(), threads));
+                    int cv = clampConv(conv[0]);
                     threads = th;
+                    convMode = cv;
                     prefs().edit()
                             .putInt(KEY_THREADS, th)
                             .putInt(KEY_FROM, from)
                             .putInt(KEY_TO, to)
+                            .putInt(KEY_CONV, cv)
                             .apply();
-                    doDownload(chapters.subList(from - 1, to), th);
+                    doDownload(chapters.subList(from - 1, to), th, cv);
                 })
                 .setNegativeButton("取消", null)
                 .create();
@@ -321,12 +357,43 @@ public class DetailActivity extends Activity {
         return Math.min(v, max);
     }
 
-    private void doDownload(final List<Chapter> selected, final int threadCount) {
+    private static int clampConv(int v) {
+        if (v < CharConv.NONE || v > CharConv.S2T) {
+            return CharConv.NONE;
+        }
+        return v;
+    }
+
+    /** 繁简转换选项芯片。 */
+    private TextView convChip(String text, boolean on) {
+        TextView t = UiUtil.text(this, text, 13, UiUtil.ON_SURFACE_VARIANT);
+        t.setGravity(android.view.Gravity.CENTER);
+        t.setTypeface(Typeface.DEFAULT_BOLD);
+        int h = UiUtil.dp(this, 9);
+        t.setPadding(UiUtil.dp(this, 4), h, UiUtil.dp(this, 4), h);
+        styleConvChip(t, on);
+        return t;
+    }
+
+    private void styleConvChip(TextView t, boolean on) {
+        t.setTextColor(on ? UiUtil.ON_PRIMARY_CONTAINER : UiUtil.ON_SURFACE_VARIANT);
+        if (on) {
+            t.setBackground(UiUtil.ripple(UiUtil.ON_PRIMARY_CONTAINER,
+                    UiUtil.round(UiUtil.PRIMARY_CONTAINER, 10, this), this));
+        } else {
+            t.setBackground(UiUtil.ripple(UiUtil.ON_SURFACE_VARIANT,
+                    UiUtil.roundStroke(UiUtil.SURFACE_CONTAINER, 10,
+                            UiUtil.OUTLINE_VARIANT, 1, this), this));
+        }
+    }
+
+    private void doDownload(final List<Chapter> selected, final int threadCount, final int conv) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
                 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
             pendingSelection = selected;
             pendingThreads = threadCount;
+            pendingConv = conv;
             requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_WRITE);
             return;
         }
@@ -335,11 +402,14 @@ public class DetailActivity extends Activity {
         bar.setProgress(0);
         SearchBook book = new SearchBook(source.name, bookName,
                 author == null ? "" : author, bookUrl);
-        Downloader.download(this, source, book, selected, threadCount, App.POOL, App.UI,
+        Downloader.download(this, source, book, selected, threadCount, conv, App.POOL, App.UI,
                 new Downloader.Progress() {
                     @Override
                     public void onStart(int total) {
-                        status.setText("开始下载，共 " + total + " 章 · " + threadCount + " 线程");
+                        String cv = conv == CharConv.T2S ? " · 繁→简"
+                                : conv == CharConv.S2T ? " · 简→繁" : "";
+                        status.setText("开始下载，共 " + total + " 章 · "
+                                + threadCount + " 线程" + cv);
                     }
 
                     @Override
@@ -373,7 +443,7 @@ public class DetailActivity extends Activity {
         if (requestCode == REQ_WRITE && results.length > 0
                 && results[0] == PackageManager.PERMISSION_GRANTED) {
             if (pendingSelection != null) {
-                doDownload(pendingSelection, pendingThreads);
+                doDownload(pendingSelection, pendingThreads, pendingConv);
                 pendingSelection = null;
             }
         } else if (requestCode == REQ_WRITE) {

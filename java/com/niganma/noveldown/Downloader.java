@@ -201,7 +201,7 @@ public final class Downloader {
 
     /** 后台下载整本书并保存为明文 txt；chapters 用 threads 个线程并发下载。回调均在主线程。 */
     public static void download(final Context ctx, final BookSource s, final SearchBook book,
-                               final List<Chapter> chapters, final int threads,
+                               final List<Chapter> chapters, final int threads, final int conv,
                                ExecutorService pool, final Handler ui, final Progress cb) {
         pool.execute(new Runnable() {
             @Override
@@ -267,7 +267,7 @@ public final class Downloader {
                 }
                 sb.append("------------------------------------------------\n");
                 sb.append("本文件由「小说下载器 by泥甘麻 qq2211927635」下载生成\n");
-                final String content = sb.toString();
+                final String content = CharConv.convert(ctx, sb.toString(), conv);
                 final int okFinal = ok;
                 try {
                     String loc = FileExport.save(ctx, FileExport.fileName(book.name), content);

@@ -13,6 +13,7 @@
 - **正文分页合并**：支持章内分页（`contentPages`）逐页抓取并合并，避免长章节被截断。
 - **索引式章节**（`indexChapters`）：适配目录由 JS 动态渲染、静态 HTML 拿不到章节链接的站点（如小说阅读 cooks.tw），由「最新章节 ID + 目录下标」反推每章 URL。
 - **链接直接打开**：首页搜索栏右侧的 🔗 可粘贴书籍详情页链接，用匹配的书源直接解析下载（适用于不支持搜索的动态站）。
+- **繁简转换**：下载设置里可选「不转换 / 繁→简 / 简→繁」，导出前统一转换（基于 OpenCC 单字映射表）。
 - **排版清洗**：去除 HTML 标签与站点广告文本，压缩多余空行（如 `&nbsp;` / 连续 `<br>` 造成的空行）。
 - **明文 TXT 导出**：保存到 `下载/小说下载器/` 目录，无任何加密。
 - **Material Design 3 风格 UI**：统一配色（主色 / 容器色 / 表面色）、圆角、阴影与涟漪反馈。
@@ -24,17 +25,20 @@ NovelDownloader/
 ├── AndroidManifest.xml              # 清单文件
 ├── build.sh                         # 无 Gradle 的手动构建脚本（aapt2 -> javac -> d8 -> apksigner）
 ├── assets/
-│   └── builtin_sources.json         # 内置书源配置
+│   ├── builtin_sources.json         # 内置书源配置
+│   ├── ts.txt                       # 繁→简单字映射（OpenCC）
+│   └── st.txt                       # 简→繁单字映射（OpenCC）
 ├── res/                             # 资源（图标、字符串）
 └── java/com/niganma/noveldown/
-    ├── MainActivity.java            # 首页：搜索
-    ├── DetailActivity.java          # 详情：加载目录 + 下载设置（章节范围 / 线程数）
+    ├── MainActivity.java            # 首页：搜索 / 🔗 链接打开
+    ├── DetailActivity.java          # 详情：加载目录 + 下载设置（范围 / 线程 / 繁简）
     ├── AboutActivity.java           # 书源管理：启用停用 / 导入 / 清空
     ├── BookSource.java              # 书源模型（正则规则格式）
     ├── SourceStore.java             # 书源仓库：内置 + 自定义 + 启停
     ├── Searcher.java                # 并发搜索
     ├── Downloader.java              # 目录加载 + 多线程下载
     ├── Rules.java                   # 正则抽取 / 清洗 / 排版规范化引擎
+    ├── CharConv.java                # 繁简转换（OpenCC 单字表）
     ├── Http.java                    # 网络请求（含编码处理）
     ├── FileExport.java              # 明文 TXT 导出
     ├── UiUtil.java / UiKit.java     # MD3 设计系统（颜色 / 组件）
@@ -132,7 +136,7 @@ bash build.sh
 
 最新 APK 通过 [Releases](https://github.com/a11122333/NovelDownloader/releases) 页面分发，请前往下载对应版本的 `NovelDownloader-<版本>.apk`。
 
-当前版本：**1.8**
+当前版本：**1.9**
 
 - 最低系统版本：Android 7.0（API 24），目标 API 34
 - 安装需在系统中允许「安装未知来源应用」
@@ -143,3 +147,7 @@ bash build.sh
 ## 免责声明
 
 本项目仅用于 Android 开发与网络爬虫技术的学习研究。使用者需自行承担因使用本工具产生的一切后果，请遵守当地法律法规及各网站的服务条款。
+
+## 第三方资源
+
+繁简转换所用的单字映射表（`assets/ts.txt`、`assets/st.txt`）派生自 [OpenCC](https://github.com/BYVoid/OpenCC)（Apache-2.0 许可）。

@@ -10,12 +10,12 @@ PATH=$JAVA_HOME/bin:$PATH
 
 PROJ=/workspace/NovelDownloader
 OUT=$PROJ/build
-APK_NAME="NovelDownloader-1.8.apk"
+APK_NAME="NovelDownloader-1.9.apk"
 
 MIN_SDK=24
 TARGET_SDK=34
-VER_CODE=9
-VER_NAME=1.8
+VER_CODE=10
+VER_NAME=1.9
 
 rm -rf "$OUT"
 mkdir -p "$OUT/compiled" "$OUT/classes" "$OUT/dex"
@@ -84,6 +84,6 @@ ls -la "$PROJ/$APK_NAME"
 sha256sum "$PROJ/$APK_NAME"
 
 # 额外打包 zip：避免中文名/传输导致 APK 损坏，zip 能保证二进制完整性
-( cd "$PROJ" && rm -f "NovelDownloader-1.8.zip" && zip -q -9 "NovelDownloader-1.8.zip" "$APK_NAME" )
-echo "ZIP -> $PROJ/NovelDownloader-1.8.zip"
-ls -la "$PROJ/NovelDownloader-1.8.zip"
+( cd "$PROJ" && rm -f "NovelDownloader-1.9.zip" && zip -q -9 "NovelDownloader-1.9.zip" "$APK_NAME" )
+echo "ZIP -> $PROJ/NovelDownloader-1.9.zip"
+ls -la "$PROJ/NovelDownloader-1.9.zip"
