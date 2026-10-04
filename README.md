@@ -117,10 +117,11 @@ bash build.sh
 ```json
 {
   "name": "番茄小说",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
   "searchUrl": "http://101.35.133.34:5000/api/search?key={{key}}&offset=0",
   "listRule": "\"book_id\":\"(\\d+)\"[^{}]*?\"book_name\":\"([^\"]*)\"",
   "bookUrlTemplate": "https://fanqienovel.com/page/{{id}}",
-  "chapterIdRule": "\"itemId\":\"(\\d+)\",\"needPay\":\\d+,\"title\":\"([^\"]*)\"",
+  "chapterIdRule": "\"itemId\":\"(\\d+)\"[^{}]*?\"title\":\"([^\"]*)\"",
   "chapterUrlTemplate": "http://101.35.133.34:5000/api/raw_full?item_id={{id}}",
   "contentRule": "\"content\":\"((?:[^\"\\\\]|\\\\.)*)\"",
   "jsonEscape": true,
@@ -129,6 +130,8 @@ bash build.sh
 ```
 
 流程：搜索经第三方接口拿到 `book_id` → 用 `bookUrlTemplate` 打开官方书页 → `chapterIdRule` 取全部章节 → 每章 URL 指向第三方接口 `raw_full` → 反转义并清洗得到正文。
+
+> 注：番茄书页对移动 UA 只返回「最后 50 章」且字段顺序不同，故本源用 `userAgent` 指定桌面 UA 以拿到完整目录；`chapterIdRule` 也写成与字段顺序无关。
 
 > ⚠️ 说明：番茄官方 App 接口有签名校验（`X-Gorgon`/`X-Argus`），无法直接调用；官方网页对多数章节只给出约 300 字预览。故本内置书源借助第三方接口获取全文。该接口为**他人服务器（HTTP）**，可能随时失效或变更——失效时可在「书源管理」里把 `searchUrl`/`chapterUrlTemplate` 换成新的接口地址，或移除该书源。
 
@@ -165,7 +168,7 @@ bash build.sh
 
 最新 APK 通过 [Releases](https://github.com/a11122333/NovelDownloader/releases) 页面分发，请前往下载对应版本的 `NovelDownloader-<版本>.apk`。
 
-当前版本：**1.13**
+当前版本：**1.14**
 
 - 最低系统版本：Android 7.0（API 24），目标 API 34
 - 安装需在系统中允许「安装未知来源应用」

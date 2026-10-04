@@ -42,7 +42,7 @@ public final class Searcher {
                     boolean err = false;
                     try {
                         String url = Rules.fill(s.searchUrl, key, page);
-                        String html = Http.get(url, s.charset);
+                        String html = Http.get(url, s.charset, null, s.userAgent);
                         List<String[]> items = Rules.findAll(html, s.listRule, 3);
                         for (String[] g : items) {
                             if (g[0] == null || g[1] == null) {

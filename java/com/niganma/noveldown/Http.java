@@ -20,14 +20,20 @@ public final class Http {
     }
 
     public static String get(String url, String charset) throws IOException {
-        return get(url, charset, null);
+        return get(url, charset, null, null);
     }
 
     public static String get(String url, String charset, String referer) throws IOException {
+        return get(url, charset, referer, null);
+    }
+
+    public static String get(String url, String charset, String referer, String userAgent)
+            throws IOException {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(15000);
         c.setReadTimeout(20000);
-        c.setRequestProperty("User-Agent", UA);
+        c.setRequestProperty("User-Agent",
+                (userAgent == null || userAgent.isEmpty()) ? UA : userAgent);
         c.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8");
         c.setRequestProperty("Accept-Encoding", "gzip");
         if (referer != null && !referer.isEmpty()) {

@@ -52,6 +52,7 @@ public class BookSource {
 
     public String name = "未命名";
     public String charset = "utf-8";
+    public String userAgent = "";
     public String baseUrl = "";
     public String searchUrl = "";
     public String listRule = "";
@@ -102,6 +103,7 @@ public class BookSource {
         BookSource s = new BookSource();
         s.name = o.optString("name", "未命名");
         s.charset = o.optString("charset", "utf-8");
+        s.userAgent = o.optString("userAgent", "");
         s.baseUrl = o.optString("baseUrl", "");
         s.searchUrl = o.optString("searchUrl", "");
         s.listRule = o.optString("listRule", "");
@@ -142,6 +144,9 @@ public class BookSource {
         try {
             o.put("name", name);
             o.put("charset", charset);
+            if (!userAgent.isEmpty()) {
+                o.put("userAgent", userAgent);
+            }
             if (!baseUrl.isEmpty()) {
                 o.put("baseUrl", baseUrl);
             }

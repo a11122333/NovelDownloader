@@ -172,11 +172,12 @@
   {
     "name": "番茄小说",
     "charset": "utf-8",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "baseUrl": "https://fanqienovel.com",
     "searchUrl": "http://101.35.133.34:5000/api/search?key={{key}}&offset=0",
     "listRule": "\"book_id\":\"(\\d+)\"[^{}]*?\"book_name\":\"([^\"]*)\"",
     "bookUrlTemplate": "https://fanqienovel.com/page/{{id}}",
-    "chapterIdRule": "\"itemId\":\"(\\d+)\",\"needPay\":\\d+,\"title\":\"([^\"]*)\"",
+    "chapterIdRule": "\"itemId\":\"(\\d+)\"[^{}]*?\"title\":\"([^\"]*)\"",
     "chapterUrlTemplate": "http://101.35.133.34:5000/api/raw_full?item_id={{id}}",
     "contentRule": "\"content\":\"((?:[^\"\\\\]|\\\\.)*)\"",
     "jsonEscape": true,

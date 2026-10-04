@@ -54,7 +54,7 @@ public final class Downloader {
         // 目录可能在单独的目录页（如详情页只列最新章节）
         String tocUrl = (s.tocUrl == null || s.tocUrl.isEmpty())
                 ? bookUrl : Rules.fillBook(s.tocUrl, bookUrl);
-        String html = Http.get(tocUrl, s.charset, bookUrl);
+        String html = Http.get(tocUrl, s.charset, bookUrl, s.userAgent);
         appendChapters(list, html, tocUrl, s.chapterList);
 
         // 目录分页：一次拿到所有分页 URL，逐页合并
@@ -69,7 +69,7 @@ public final class Downloader {
                     continue;
                 }
                 try {
-                    String pageHtml = Http.get(pageUrl, s.charset, tocUrl);
+                    String pageHtml = Http.get(pageUrl, s.charset, tocUrl, s.userAgent);
                     appendChapters(list, pageHtml, pageUrl, s.chapterList);
                 } catch (Exception ignored) {
                     // 单页失败不影响整体
@@ -86,7 +86,7 @@ public final class Downloader {
      */
     private static List<Chapter> loadIndexedChapters(BookSource s, String bookUrl) throws Exception {
         BookSource.IndexChapters ix = s.indexChapters;
-        String bookHtml = Http.get(bookUrl, s.charset);
+        String bookHtml = Http.get(bookUrl, s.charset, null, s.userAgent);
         String lastIdStr = Rules.first(bookHtml, ix.lastIdRule);
         if (lastIdStr == null || lastIdStr.trim().isEmpty()) {
             throw new Exception("详情页解析不到最新章节 ID（lastIdRule）");
@@ -104,7 +104,7 @@ public final class Downloader {
         String readerUrl = ix.urlTemplate
                 .replace("{{article}}", article)
                 .replace("{{id}}", lastIdStr.trim());
-        String readerHtml = Http.get(readerUrl, s.charset, bookUrl);
+        String readerHtml = Http.get(readerUrl, s.charset, bookUrl, s.userAgent);
 
         List<String[]> items = Rules.findAll(readerHtml, ix.catalogRule, 2);
         if (items.isEmpty()) {
@@ -152,7 +152,7 @@ public final class Downloader {
      * 用 chapterIdRule 取全部，再按 chapterUrlTemplate 生成每章 URL。
      */
     private static List<Chapter> loadIdChapters(BookSource s, String bookUrl) throws Exception {
-        String html = Http.get(bookUrl, s.charset);
+        String html = Http.get(bookUrl, s.charset, null, s.userAgent);
         List<String[]> items = Rules.findAll(html, s.chapterIdRule, 2);
         List<Chapter> list = new ArrayList<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
@@ -210,7 +210,7 @@ public final class Downloader {
             if (cur == null || !seen.add(cur)) {
                 break;
             }
-            String html = Http.get(cur, s.charset, referer);
+            String html = Http.get(cur, s.charset, referer, s.userAgent);
             String one = Rules.first(html, s.contentRule);
             if (one != null) {
                 raw.append(one);
