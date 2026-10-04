@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.InputType;
@@ -14,8 +15,10 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,6 +50,10 @@ public class MainActivity extends Activity {
     private int totalSources;
     private int doneSources;
     private final List<String> failedSources = new ArrayList<>();
+
+    /** 批量「链接打开」的待处理队列（每项 = {url, 书源名, charset}）。 */
+    private final List<String[]> batchQueue = new ArrayList<>();
+    private boolean batchActive = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -373,16 +380,21 @@ public class MainActivity extends Activity {
         return set;
     }
 
-    /** 粘贴书籍详情页链接，用匹配的书源直接打开（适用于索引式书源，无法搜索）。 */
+    /** 粘贴书籍详情页链接（支持多行），用匹配的书源打开；多本时先勾选再逐个打开。 */
     private void openByLink() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         int p = UiUtil.dp(this, 4);
         box.setPadding(p, UiUtil.dp(this, 4), p, 0);
-        box.addView(UiUtil.text(this, "粘贴书籍详情页链接，将用对应书源解析目录并下载。\n"
-                + "例：https://novel.cooks.tw/novel.html?articleid=3265", 13, UiUtil.ON_SURFACE_VARIANT));
+        box.addView(UiUtil.text(this, "粘贴书籍详情页链接，可一次粘贴多行（每行一个），"
+                + "解析后勾选要打开的书。\n例：\nhttps://novel.cooks.tw/novel.html?articleid=3265",
+                13, UiUtil.ON_SURFACE_VARIANT));
         final EditText input = UiKit.textField(this,
                 "https://…/novel.html?articleid=…", InputType.TYPE_TEXT_VARIATION_URI);
+        input.setSingleLine(false);
+        input.setGravity(Gravity.TOP | Gravity.START);
+        input.setMinLines(3);
+        input.setMaxLines(6);
         LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         ilp.topMargin = UiUtil.dp(this, 8);
@@ -391,7 +403,7 @@ public class MainActivity extends Activity {
         AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle("链接打开")
                 .setView(box)
-                .setPositiveButton("打开", (d, w) -> launchByLink(input.getText().toString().trim()))
+                .setPositiveButton("解析", (d, w) -> parseLinks(input.getText().toString()))
                 .setNegativeButton("取消", null)
                 .create();
         dlg.show();
@@ -399,24 +411,177 @@ public class MainActivity extends Activity {
         dlg.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(UiUtil.ON_SURFACE_VARIANT);
     }
 
-    private void launchByLink(final String url) {
-        if (url.isEmpty() || !url.startsWith("http")) {
-            status.setText("请输入以 http:// 或 https:// 开头的书籍链接");
-            return;
-        }
-        BookSource src = null;
-        for (BookSource s : SourceStore.all(this)) {
-            if (s.matches(url)) {
-                src = s;
-                break;
+    /** 拆分多行文本里的链接，按域名匹配书源。 */
+    private void parseLinks(String text) {
+        LinkedHashSet<String> urls = new LinkedHashSet<>();
+        for (String tok : text.split("\\s+")) {
+            String t = tok.trim();
+            if (t.startsWith("http://") || t.startsWith("https://")) {
+                urls.add(t);
             }
         }
-        if (src == null) {
-            status.setText("没有匹配的书源（该链接的域名不在内置/自定义书源中）");
+        if (urls.isEmpty()) {
+            status.setText("没有识别到 http(s) 链接");
             return;
         }
-        final String sourceName = src.name;
-        final String charset = src.charset;
+        List<BookSource> sources = SourceStore.all(this);
+        final List<String[]> matched = new ArrayList<>();
+        int unmatched = 0;
+        for (String u : urls) {
+            BookSource hit = null;
+            for (BookSource s : sources) {
+                if (s.matches(u)) {
+                    hit = s;
+                    break;
+                }
+            }
+            if (hit == null) {
+                unmatched++;
+                continue;
+            }
+            matched.add(new String[]{u, hit.name, hit.charset});
+        }
+        if (matched.isEmpty()) {
+            status.setText("没有匹配的书源（" + unmatched + " 个链接的域名不在内置/自定义书源中）");
+            return;
+        }
+        if (matched.size() == 1) {
+            launchDetail(matched.get(0)[0], matched.get(0)[1], matched.get(0)[2]);
+            return;
+        }
+        showBatchPicker(matched, unmatched);
+    }
+
+    /** 批量勾选列表（支持全选 / 全不选），确认后逐个打开。 */
+    private void showBatchPicker(final List<String[]> items, int unmatched) {
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding(UiUtil.dp(this, 4), UiUtil.dp(this, 4), UiUtil.dp(this, 4), 0);
+
+        LinearLayout head = new LinearLayout(this);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        TextView info = UiUtil.text(this, "识别到 " + items.size() + " 个链接"
+                + (unmatched > 0 ? "（另有 " + unmatched + " 个未匹配书源）" : ""),
+                13, UiUtil.ON_SURFACE_VARIANT);
+        info.setLayoutParams(new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        head.addView(info);
+        final TextView selAll = UiUtil.text(this, "全不选", 13, UiUtil.PRIMARY);
+        selAll.setTypeface(Typeface.DEFAULT_BOLD);
+        int bp = UiUtil.dp(this, 8);
+        selAll.setPadding(bp, bp, bp, bp);
+        selAll.setBackground(UiUtil.ripple(UiUtil.PRIMARY,
+                UiUtil.round(UiUtil.SURFACE_CONTAINER, 20, this), this));
+        head.addView(selAll);
+        col.addView(head);
+
+        ScrollView sv = new ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        sv.addView(list);
+        final List<CheckBox> boxes = new ArrayList<>();
+        for (int i = 0; i < items.size(); i++) {
+            final String[] it = items.get(i);
+            CheckBox cb = new CheckBox(this);
+            cb.setText((i + 1) + ". " + it[1] + " · " + shortUrl(it[0]));
+            cb.setChecked(true);
+            cb.setTextSize(14);
+            cb.setTextColor(UiUtil.ON_SURFACE);
+            cb.setButtonTintList(ColorStateList.valueOf(UiUtil.PRIMARY));
+            int vp = UiUtil.dp(this, 6);
+            cb.setPadding(0, vp, 0, vp);
+            boxes.add(cb);
+            list.addView(cb);
+        }
+        col.addView(sv);
+
+        selAll.setOnClickListener(v -> {
+            boolean allChecked = true;
+            for (CheckBox b : boxes) {
+                if (!b.isChecked()) {
+                    allChecked = false;
+                    break;
+                }
+            }
+            boolean target = !allChecked;
+            for (CheckBox b : boxes) {
+                b.setChecked(target);
+            }
+            selAll.setText(target ? "全不选" : "全选");
+        });
+
+        // 后台抓取书名，替换原始链接标签（失败则保留）
+        for (int i = 0; i < items.size(); i++) {
+            final int idx = i;
+            final String[] it = items.get(i);
+            App.POOL.execute(new Runnable() {
+                @Override
+                public void run() {
+                    final String title = fetchTitle(it[0], it[2]);
+                    if (title == null || title.isEmpty()) {
+                        return;
+                    }
+                    App.UI.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (idx < boxes.size()) {
+                                boxes.get(idx).setText((idx + 1) + ". " + title);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        AlertDialog dlg = new AlertDialog.Builder(this)
+                .setTitle("选择要打开的书")
+                .setView(col)
+                .setPositiveButton("打开", (d, w) -> {
+                    List<String[]> chosen = new ArrayList<>();
+                    for (int i = 0; i < boxes.size(); i++) {
+                        if (boxes.get(i).isChecked()) {
+                            chosen.add(items.get(i));
+                        }
+                    }
+                    if (chosen.isEmpty()) {
+                        Toast.makeText(this, "请至少勾选一本", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (chosen.size() == 1) {
+                        launchDetail(chosen.get(0)[0], chosen.get(0)[1], chosen.get(0)[2]);
+                    } else {
+                        startBatch(chosen);
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .create();
+        dlg.show();
+        dlg.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(UiUtil.PRIMARY);
+        dlg.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(UiUtil.ON_SURFACE_VARIANT);
+    }
+
+    /** 开始批量：入队并打开第一本，之后每返回首页自动打开下一本。 */
+    private void startBatch(List<String[]> items) {
+        batchQueue.clear();
+        batchQueue.addAll(items);
+        batchActive = true;
+        openNextBatch();
+    }
+
+    private void openNextBatch() {
+        if (batchQueue.isEmpty()) {
+            batchActive = false;
+            status.setText("批量打开完成");
+            return;
+        }
+        String[] it = batchQueue.remove(0);
+        int remain = batchQueue.size();
+        status.setText("批量打开中，还剩 " + remain + " 本待打开");
+        launchDetail(it[0], it[1], it[2]);
+    }
+
+    private void launchDetail(final String url, final String sourceName, final String charset) {
         status.setText("正在打开链接…");
         App.POOL.execute(new Runnable() {
             @Override
@@ -425,7 +590,6 @@ public class MainActivity extends Activity {
                 App.UI.post(new Runnable() {
                     @Override
                     public void run() {
-                        status.setText("");
                         Intent it = new Intent(MainActivity.this, DetailActivity.class);
                         it.putExtra("name", title);
                         it.putExtra("author", "");
@@ -436,6 +600,22 @@ public class MainActivity extends Activity {
                 });
             }
         });
+    }
+
+    /** 链接的简短标签：优先取 articleid，否则取末尾片段。 */
+    private static String shortUrl(String url) {
+        try {
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("articleid=(\\d+)").matcher(url);
+            if (m.find()) {
+                return "id=" + m.group(1);
+            }
+        } catch (Exception ignored) {
+        }
+        if (url.length() <= 28) {
+            return url;
+        }
+        return "…" + url.substring(url.length() - 26);
     }
 
     /** 取网页 <title> 作为书名（去掉站点后缀）。 */
@@ -539,6 +719,11 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         refreshSources();
+        if (batchActive) {
+            // 从详情页返回时，继续批量打开下一本
+            openNextBatch();
+            return;
+        }
         if (status.getText().length() == 0) {
             status.setText("已启用 " + enabledSources.size() + " 个书源，已选 "
                     + selected.size() + " 个");
