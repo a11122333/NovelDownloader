@@ -5,9 +5,6 @@
 *.idsig
 *.zip
 
-# 例外：仅保留当前发布版 APK 供直接下载（其他构建产物不入库）
-!NovelDownloader-1.7.apk
-
 # 签名密钥（切勿提交/公开）
 keystore.jks
 *.jks

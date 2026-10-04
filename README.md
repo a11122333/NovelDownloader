@@ -100,11 +100,13 @@ bash build.sh
 
 ## 下载
 
-最新构建版 APK 已随仓库提供：[NovelDownloader-1.7.apk](./NovelDownloader-1.7.apk)（versionCode 8 / versionName 1.7）。
+最新 APK 通过 [Releases](https://github.com/a11122333/NovelDownloader/releases) 页面分发，请前往下载对应版本的 `NovelDownloader-<版本>.apk`。
 
-- SHA-256：`6dff84cf2575abca09147fba428434a112940a2f329d0e6e0945aed9a010ad1d`
+当前版本：**1.7**
+
 - 最低系统版本：Android 7.0（API 24），目标 API 34
 - 安装需在系统中允许「安装未知来源应用」
+- 下载后可对照 Release 说明中的 SHA-256 校验文件完整性
 
 也可以按上文「构建」章节自行编译。
 
