@@ -7,7 +7,24 @@
     "listRule": "<h3><a href=\"([^\"]+)\"[^>]*>([^<]+)</a></h3>\\s*<p class=\"author\"><span class=\"type\">作者：</span>([^<]+)</p>",
     "chapterList": "<li><span><a href=\"([^\"]+)\">([^<]+)</a></span></li>",
     "contentRule": "<div class=\"article-con\">([\\s\\S]*?)</div></div>",
-    "replace": [["<br\\s*/?>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "], ["最新网址.*", ""]],
+    "replace": [
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ],
+      [
+        "最新网址.*",
+        ""
+      ]
+    ],
     "tocUrl": "{{book}}0/"
   },
   {
@@ -18,7 +35,20 @@
     "listRule": "<tr>\\s*<td class=\"even\"[^>]*><a href=\"([^\"]+)\"[^>]*>([^<]+)</a>.*?<td class=\"even\"[^>]*>([^<]+)</td>",
     "chapterList": "(?:\\A[\\s\\S]*?正文</dt>\\s*)?<dd><a href=\"([^\"]+)\">([^<]+)</a></dd>",
     "contentRule": "<div id=\"content\">([\\s\\S]*?)</div>",
-    "replace": [["<br\\s*/?>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "]]
+    "replace": [
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ]
+    ]
   },
   {
     "name": "零点看书",
@@ -29,7 +59,24 @@
     "chapterList": "(?:\\A[\\s\\S]*?正文</h2>[\\s\\S]*?<ul class=\"section-list[^\"]*\">\\s*)?<li><a href=\"([^\"]+)\">([^<]+)</a></li>",
     "contentRule": "<div class=\"content\" id=\"content\">\\s*(?:<h1[^>]*>[\\s\\S]*?</h1>\\s*)?(?:[^<]*?\\(第\\d+/\\d+页\\)\\s*)?([\\s\\S]*?)</div>",
     "contentPages": "<a[^>]*href=\"([^\"]+)\"[^>]*>下一页</a>",
-    "replace": [["（本章未完[^）]*）", ""], ["<br\\s*/?>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "]],
+    "replace": [
+      [
+        "（本章未完[^）]*）",
+        ""
+      ],
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ]
+    ],
     "tocPages": "<option value=\"([^\"]+)\""
   },
   {
@@ -40,7 +87,28 @@
     "listRule": "<div class=\"hot_sale\">\\s*<a href=['\"]([^'\"]+)['\"]>.*?<p class=\"title\">([^<]*)</p>\\s*<p class=\"author\">(?:作者：)?([^<]*)</p>",
     "chapterList": "<p[^>]*>\\s*<a[^>]*href=['\"]([^'\"]+\\.html)['\"][^>]*>([^<]*)</a>\\s*</p>",
     "contentRule": "<div id=\"chaptercontent\"[^>]*>.*?<p[^>]*>(.*?)</p>",
-    "replace": [["<br\\s*/?>", "\n"], ["（本章未完[^）]*）", ""], ["\\(第[^)]*页\\)", ""], ["<[^>]+>", ""], ["&nbsp;", " "]],
+    "replace": [
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "（本章未完[^）]*）",
+        ""
+      ],
+      [
+        "\\(第[^)]*页\\)",
+        ""
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ]
+    ],
     "tocUrl": "{{book}}all.html"
   },
   {
@@ -51,7 +119,28 @@
     "listRule": "<li>\\s*<div class=\"img_span\">\\s*<a href=\"([^\"]+)\">\\s*<img[^>]*?title=\"([^\"]+)\"[\\s\\S]*?<a href=\"/author/[^\"]*\"><i></i>([^<]+)</a>",
     "chapterList": "(?:\\A[\\s\\S]*?全部章节[\\s\\S]*?<ul>\\s*)?<li data=\"1\"><a href=\"([^\"]+)\"[^>]*>([^<]+)</a></li>",
     "contentRule": "<div id=\"bodybox\">([\\s\\S]*?)</div>",
-    "replace": [["<br\\s*/?>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "], ["[^.]+侵权必究", ""], ["\\uFEFF", ""]]
+    "replace": [
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ],
+      [
+        "[^.]+侵权必究",
+        ""
+      ],
+      [
+        "\\uFEFF",
+        ""
+      ]
+    ]
   },
   {
     "name": "独步小说",
@@ -61,6 +150,73 @@
     "listRule": "<tr>\\s*<td><a href=\"([^\"]+)\"[^>]*>\\s*《?([^《》<>]*)》?\\s*</a>\\s*</td>\\s*<td>([^<]*)</td>",
     "chapterList": "<div class=\"col-md-6 item\">\\s*<a href=\"([^\"]+)\"[^>]*>([^<]*)</a>\\s*</div>(?!.*<div id=\"all-chapter\">)",
     "contentRule": "<div id=\"cont-body\"[^>]*>\\s*(?:<script[^>]*>.*?</script>\\s*)?(.*?)</div>",
-    "replace": [["<br\\s*/?>", "\n"], ["</p>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "]]
+    "replace": [
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "</p>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ]
+    ]
+  },
+  {
+    "name": "番茄小说",
+    "charset": "utf-8",
+    "baseUrl": "https://fanqienovel.com",
+    "searchUrl": "http://101.35.133.34:5000/api/search?key={{key}}&offset=0",
+    "listRule": "\"book_id\":\"(\\d+)\"[^{}]*?\"book_name\":\"([^\"]*)\"",
+    "bookUrlTemplate": "https://fanqienovel.com/page/{{id}}",
+    "chapterIdRule": "\"itemId\":\"(\\d+)\",\"needPay\":\\d+,\"title\":\"([^\"]*)\"",
+    "chapterUrlTemplate": "http://101.35.133.34:5000/api/raw_full?item_id={{id}}",
+    "contentRule": "\"content\":\"((?:[^\"\\\\]|\\\\.)*)\"",
+    "jsonEscape": true,
+    "replace": [
+      [
+        "\\{!--[\\s\\S]*?--\\}",
+        ""
+      ],
+      [
+        "PGC_VOICE[^\\n]*",
+        ""
+      ],
+      [
+        "<header>[\\s\\S]*?</header>",
+        ""
+      ],
+      [
+        "<footer>[\\s\\S]*?</footer>",
+        ""
+      ],
+      [
+        "</p>",
+        "\n"
+      ],
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ],
+      [
+        "&amp;",
+        "&"
+      ]
+    ]
   }
 ]

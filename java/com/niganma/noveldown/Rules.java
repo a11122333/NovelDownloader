@@ -120,6 +120,50 @@ public final class Rules {
                 || c == '\u00A0' || c == '\u3000' || c == '\u000B' || c == '\f';
     }
 
+    /**
+     * 反转义 JSON 字符串里的转义序列（Unicode 码点 / 换行 / 制表 / 引号 / 反斜杠 / 斜杠 等）。
+     * 用于把从 JSON 字段里抠出来的正文 HTML 还原成可继续清洗的文本。
+     */
+    public static String jsonUnescape(String s) {
+        if (s == null || s.indexOf('\\') < 0) {
+            return s;
+        }
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch != '\\' || i + 1 >= s.length()) {
+                sb.append(ch);
+                continue;
+            }
+            char n = s.charAt(++i);
+            switch (n) {
+                case 'n': sb.append('\n'); break;
+                case 'r': sb.append('\r'); break;
+                case 't': sb.append('\t'); break;
+                case 'b': sb.append('\b'); break;
+                case 'f': sb.append('\f'); break;
+                case '"': sb.append('"'); break;
+                case '\\': sb.append('\\'); break;
+                case '/': sb.append('/'); break;
+                case 'u':
+                    if (i + 4 < s.length()) {
+                        try {
+                            sb.append((char) Integer.parseInt(s.substring(i + 1, i + 5), 16));
+                            i += 4;
+                        } catch (NumberFormatException e) {
+                            sb.append(n);
+                        }
+                    } else {
+                        sb.append(n);
+                    }
+                    break;
+                default:
+                    sb.append(n);
+            }
+        }
+        return sb.toString();
+    }
+
     /** 把相对链接解析成绝对链接。 */
     public static String absUrl(String base, String href) {
         if (href == null || href.isEmpty()) {

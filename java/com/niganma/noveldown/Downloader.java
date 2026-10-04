@@ -43,6 +43,9 @@ public final class Downloader {
         if (s.isIndexed()) {
             return loadIndexedChapters(s, bookUrl);
         }
+        if (s.hasIdChapters()) {
+            return loadIdChapters(s, bookUrl);
+        }
         List<Chapter> list = new ArrayList<>();
         if (s.chapterList == null || s.chapterList.isEmpty()) {
             list.add(new Chapter("正文", bookUrl));
@@ -144,6 +147,34 @@ public final class Downloader {
         return list;
     }
 
+    /**
+     * 列表式目录：详情页内嵌了「章节ID + 标题」的列表（如番茄书页的 chapterListWithVolume），
+     * 用 chapterIdRule 取全部，再按 chapterUrlTemplate 生成每章 URL。
+     */
+    private static List<Chapter> loadIdChapters(BookSource s, String bookUrl) throws Exception {
+        String html = Http.get(bookUrl, s.charset);
+        List<String[]> items = Rules.findAll(html, s.chapterIdRule, 2);
+        List<Chapter> list = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (String[] g : items) {
+            if (g[0] == null || g[0].trim().isEmpty()) {
+                continue;
+            }
+            String id = g[0].trim();
+            String url = s.chapterUrlTemplate.replace("{{id}}", id);
+            if (!seen.add(url)) {
+                continue;
+            }
+            String title = (g[1] == null || g[1].trim().isEmpty())
+                    ? ("第" + (list.size() + 1) + "章") : g[1].trim();
+            list.add(new Chapter(title, url));
+        }
+        if (list.isEmpty()) {
+            throw new Exception("解析不到章节目录（chapterIdRule）");
+        }
+        return list;
+    }
+
     /** 从一页目录 HTML 中抽取章节并按 URL 去重追加。 */
     private static void appendChapters(List<Chapter> list, String html, String pageUrl,
                                        String chapterList) {
@@ -170,7 +201,8 @@ public final class Downloader {
      * 抓取一章正文。若书源配置了 contentPages，则把本章内部的分页（下一页）
      * 逐页抓取并合并，避免长篇章节被截断；最终统一按 replace 规则清洗。
      */
-    private static String fetchContent(BookSource s, String startUrl, String referer) throws Exception {
+    private static String fetchContent(Context ctx, BookSource s, String startUrl,
+                                       String referer) throws Exception {
         StringBuilder raw = new StringBuilder();
         java.util.Set<String> seen = new java.util.HashSet<>();
         String cur = startUrl;
@@ -196,7 +228,16 @@ public final class Downloader {
             }
             cur = abs;
         }
-        return Rules.tidy(Rules.clean(raw.toString(), s.replace));
+        String text = raw.toString();
+        // 番茄等站点：正文藏在 JSON 字段里（可能还叠加字体 PUA 反爬）
+        if (s.puaDecode || s.jsonEscape) {
+            text = Rules.jsonUnescape(text);
+        }
+        text = Rules.clean(text, s.replace);
+        if (s.puaDecode) {
+            text = FanqieCodec.decode(ctx, text, s.puaMode);
+        }
+        return Rules.tidy(text);
     }
 
     /** 后台下载整本书并保存为明文 txt；chapters 用 threads 个线程并发下载。回调均在主线程。 */
@@ -227,7 +268,7 @@ public final class Downloader {
                         public void run() {
                             final Chapter ch = chapters.get(idx);
                             try {
-                                String text = fetchContent(s, ch.url, book.url);
+                                String text = fetchContent(ctx, s, ch.url, book.url);
                                 parts[idx] = ch.title + "\n\n" + text + "\n\n\n";
                             } catch (Exception e) {
                                 failed[idx] = true;

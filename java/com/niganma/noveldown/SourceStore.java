@@ -116,7 +116,7 @@ public final class SourceStore {
                     continue;
                 }
                 BookSource s = BookSource.fromJson(o);
-                if (!s.canSearch() && !s.isIndexed()) {
+                if (!s.canSearch() && !s.isLinkOnly()) {
                     continue;
                 }
                 list.add(s);
@@ -190,7 +190,7 @@ public final class SourceStore {
                 if (s.contentRule.isEmpty()) {
                     continue;
                 }
-                if (!s.canSearch() && !s.isIndexed()) {
+                if (!s.canSearch() && !s.isLinkOnly()) {
                     continue;
                 }
                 merged.put(o);

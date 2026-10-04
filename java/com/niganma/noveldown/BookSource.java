@@ -61,6 +61,18 @@ public class BookSource {
     public String tocPages = "";
     public String contentPages = "";
     public IndexChapters indexChapters;
+    /** 列表式目录：在详情页用正则取出「章节ID + 标题」多项（组1=ID，组2=标题）。 */
+    public String chapterIdRule = "";
+    /** 章节 URL 模板，{{id}} 会被替换为 chapterIdRule 取到的章节 ID。 */
+    public String chapterUrlTemplate = "";
+    /** 搜索结果 URL 模板，{{id}} 会被替换为 listRule 第 1 组（用于接口返回书籍ID 的场景）。 */
+    public String bookUrlTemplate = "";
+    /** 正文是否需要「番茄式」PUA 字体解码。 */
+    public boolean puaDecode = false;
+    /** PUA 解码模式（对应 fanqie_charset.json 的下标），默认 0。 */
+    public int puaMode = 0;
+    /** 正文是否为 JSON 转义字符串（需先反转义再清洗）。 */
+    public boolean jsonEscape = false;
     public List<String[]> replace = new ArrayList<>();
 
     /** 是否为「索引式章节」书源（无需搜索、靠书籍链接直接打开）。 */
@@ -69,6 +81,16 @@ public class BookSource {
                 && !indexChapters.lastIdRule.isEmpty()
                 && !indexChapters.catalogRule.isEmpty()
                 && !indexChapters.urlTemplate.isEmpty();
+    }
+
+    /** 是否为「列表式章节」书源（详情页给出章节 ID 列表，无需搜索）。 */
+    public boolean hasIdChapters() {
+        return !chapterIdRule.isEmpty() && !chapterUrlTemplate.isEmpty();
+    }
+
+    /** 是否为「仅支持链接打开」的书源（无搜索能力）。 */
+    public boolean isLinkOnly() {
+        return isIndexed() || hasIdChapters();
     }
 
     /** 是否可用于关键字搜索。 */
@@ -88,6 +110,12 @@ public class BookSource {
         s.tocUrl = o.optString("tocUrl", "");
         s.tocPages = o.optString("tocPages", "");
         s.contentPages = o.optString("contentPages", "");
+        s.chapterIdRule = o.optString("chapterIdRule", "");
+        s.chapterUrlTemplate = o.optString("chapterUrlTemplate", "");
+        s.bookUrlTemplate = o.optString("bookUrlTemplate", "");
+        s.puaDecode = o.optBoolean("puaDecode", false);
+        s.puaMode = o.optInt("puaMode", 0);
+        s.jsonEscape = o.optBoolean("jsonEscape", false);
         JSONObject idx = o.optJSONObject("indexChapters");
         if (idx != null) {
             IndexChapters ix = new IndexChapters();
@@ -129,6 +157,14 @@ public class BookSource {
                 ix.put("articleRule", indexChapters.articleRule);
                 o.put("indexChapters", ix);
             }
+            if (!chapterIdRule.isEmpty()) {
+                o.put("chapterIdRule", chapterIdRule);
+                o.put("chapterUrlTemplate", chapterUrlTemplate);
+            }
+            if (puaDecode) {
+                o.put("puaDecode", true);
+                o.put("puaMode", puaMode);
+            }
             if (!tocUrl.isEmpty()) {
                 o.put("tocUrl", tocUrl);
             }
@@ -153,9 +189,9 @@ public class BookSource {
         return o;
     }
 
-    /** 检查必填项是否齐全。索引式书源无需 searchUrl / listRule。 */
+    /** 检查必填项是否齐全。链接打开型书源（索引/列表）无需 searchUrl / listRule。 */
     public String validate() {
-        if (!isIndexed()) {
+        if (!isLinkOnly()) {
             if (searchUrl.isEmpty()) {
                 return "缺少 searchUrl";
             }

@@ -48,8 +48,11 @@ public final class Searcher {
                             if (g[0] == null || g[1] == null) {
                                 continue;
                             }
+                            String bookUrl = s.bookUrlTemplate.isEmpty()
+                                    ? Rules.absUrl(url, g[0])
+                                    : s.bookUrlTemplate.replace("{{id}}", g[0].trim());
                             found.add(new SearchBook(s.name, g[1],
-                                    g.length > 2 ? g[2] : null, Rules.absUrl(url, g[0])));
+                                    g.length > 2 ? g[2] : null, bookUrl));
                         }
                     } catch (Exception e) {
                         err = true;

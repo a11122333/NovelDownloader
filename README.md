@@ -13,6 +13,7 @@
 - **正文分页合并**：支持章内分页（`contentPages`）逐页抓取并合并，避免长章节被截断。
 - **索引式章节**（`indexChapters`）：适配目录由 JS 动态渲染、静态 HTML 拿不到章节链接的站点，由「最新章节 ID + 目录下标」反推每章 URL。
 - **链接直接打开（支持批量）**：首页搜索栏右侧的 🔗 可一次粘贴多行书籍详情页链接，解析后勾选（含全选）要打开的书，再逐个打开详情页处理；单个链接则直接打开。
+- **番茄小说书源**：内置「番茄小说」，支持关键字搜索与整本下载（目录读取官方书页，正文经第三方接口获取，详见下方说明）。
 - **繁简转换**：下载设置里可选「不转换 / 繁→简 / 简→繁」，导出前统一转换（基于 OpenCC 单字映射表）。
 - **排版清洗**：去除 HTML 标签与站点广告文本，压缩多余空行（如 `&nbsp;` / 连续 `<br>` 造成的空行）。
 - **明文 TXT 导出**：保存到 `下载/小说下载器/` 目录，无任何加密。
@@ -100,8 +101,36 @@ bash build.sh
 | `tocPages` | 目录分页规则，第 1 组为其余目录页 URL（可多个），逐页合并去重 |
 | `contentPages` | 章内分页规则，第 1 组为「下一页」URL，逐页抓取合并同一章 |
 | `indexChapters` | 索引式章节配置（见下），用于目录由 JS 渲染、页面无章节链接的站点 |
+| `chapterIdRule` | 列表式目录：在详情页用正则取「章节ID + 标题」（组1=ID、组2=标题，可多项） |
+| `chapterUrlTemplate` | 章节 URL 模板，`{{id}}` 替换为 `chapterIdRule` 取到的章节 ID |
+| `bookUrlTemplate` | 搜索结果 URL 模板，`{{id}}` 替换为 `listRule` 第 1 组（接口只返回书籍ID 时使用） |
+| `jsonEscape` | 正文是否为 JSON 转义字符串（需先反转义再清洗），默认 `false` |
+| `puaDecode` | 正文是否需要「番茄式」PUA 字体解码，默认 `false` |
+| `puaMode` | PUA 解码模式（对应内置解码表下标），默认 `0` |
 
 若未配置 `chapterList`，则把搜索到的详情页当作单章处理。
+
+### 番茄小说书源
+
+内置的「番茄小说」书源使用如下组合（官方网页目录 + 第三方接口正文）：
+
+```json
+{
+  "name": "番茄小说",
+  "searchUrl": "http://101.35.133.34:5000/api/search?key={{key}}&offset=0",
+  "listRule": "\"book_id\":\"(\\d+)\"[^{}]*?\"book_name\":\"([^\"]*)\"",
+  "bookUrlTemplate": "https://fanqienovel.com/page/{{id}}",
+  "chapterIdRule": "\"itemId\":\"(\\d+)\",\"needPay\":\\d+,\"title\":\"([^\"]*)\"",
+  "chapterUrlTemplate": "http://101.35.133.34:5000/api/raw_full?item_id={{id}}",
+  "contentRule": "\"content\":\"((?:[^\"\\\\]|\\\\.)*)\"",
+  "jsonEscape": true,
+  "replace": [["<header>[\\s\\S]*?</header>", ""], ["<footer>[\\s\\S]*?</footer>", ""], ["</p>", "\n"], ["<[^>]+>", ""]]
+}
+```
+
+流程：搜索经第三方接口拿到 `book_id` → 用 `bookUrlTemplate` 打开官方书页 → `chapterIdRule` 取全部章节 → 每章 URL 指向第三方接口 `raw_full` → 反转义并清洗得到正文。
+
+> ⚠️ 说明：番茄官方 App 接口有签名校验（`X-Gorgon`/`X-Argus`），无法直接调用；官方网页对多数章节只给出约 300 字预览。故本内置书源借助第三方接口获取全文。该接口为**他人服务器（HTTP）**，可能随时失效或变更——失效时可在「书源管理」里把 `searchUrl`/`chapterUrlTemplate` 换成新的接口地址，或移除该书源。
 
 ### 索引式章节（indexChapters）
 
@@ -136,7 +165,7 @@ bash build.sh
 
 最新 APK 通过 [Releases](https://github.com/a11122333/NovelDownloader/releases) 页面分发，请前往下载对应版本的 `NovelDownloader-<版本>.apk`。
 
-当前版本：**1.12**
+当前版本：**1.13**
 
 - 最低系统版本：Android 7.0（API 24），目标 API 34
 - 安装需在系统中允许「安装未知来源应用」
