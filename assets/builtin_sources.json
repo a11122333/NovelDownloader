@@ -62,17 +62,5 @@
     "chapterList": "<div class=\"col-md-6 item\">\\s*<a href=\"([^\"]+)\"[^>]*>([^<]*)</a>\\s*</div>(?!.*<div id=\"all-chapter\">)",
     "contentRule": "<div id=\"cont-body\"[^>]*>\\s*(?:<script[^>]*>.*?</script>\\s*)?(.*?)</div>",
     "replace": [["<br\\s*/?>", "\n"], ["</p>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "]]
-  },
-  {
-    "name": "番茄小说（小說閱讀）",
-    "charset": "utf-8",
-    "baseUrl": "https://novel.cooks.tw",
-    "contentRule": "<div class=\"chapter-content\">([\\s\\S]*?)</div>",
-    "replace": [["<br\\s*/?>", "\n"], ["</p>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "], ["&amp;", "&"]],
-    "indexChapters": {
-      "lastIdRule": "reader\\.html\\?articleid=\\d+&(?:amp;)?chapterid=(\\d+)",
-      "catalogRule": "data-idx=\"(\\d+)\"[^>]*>\\s*<span class=\"chapter-name\">([^<]*)</span>",
-      "urlTemplate": "https://novel.cooks.tw/reader.html?articleid={{article}}&chapterid={{id}}&lang=zh-TW"
-    }
   }
 ]

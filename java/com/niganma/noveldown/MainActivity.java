@@ -387,7 +387,7 @@ public class MainActivity extends Activity {
         int p = UiUtil.dp(this, 4);
         box.setPadding(p, UiUtil.dp(this, 4), p, 0);
         box.addView(UiUtil.text(this, "粘贴书籍详情页链接，可一次粘贴多行（每行一个），"
-                + "解析后勾选要打开的书。\n例：\nhttps://novel.cooks.tw/novel.html?articleid=3265",
+                + "解析后勾选要打开的书。\n例：\nhttps://…/novel.html?articleid=…",
                 13, UiUtil.ON_SURFACE_VARIANT));
         final EditText input = UiKit.textField(this,
                 "https://…/novel.html?articleid=…", InputType.TYPE_TEXT_VARIATION_URI);

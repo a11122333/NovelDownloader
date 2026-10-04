@@ -11,7 +11,7 @@
 - **指定章节范围下载**：下载时可指定起始 / 结束章节，只下载需要的部分。
 - **多线程下载**：1 - 64 线程可选（默认 8），章节结果按下标归位，保证顺序不乱。
 - **正文分页合并**：支持章内分页（`contentPages`）逐页抓取并合并，避免长章节被截断。
-- **索引式章节**（`indexChapters`）：适配目录由 JS 动态渲染、静态 HTML 拿不到章节链接的站点（如番茄小说聚合站 cooks.tw），由「最新章节 ID + 目录下标」反推每章 URL。
+- **索引式章节**（`indexChapters`）：适配目录由 JS 动态渲染、静态 HTML 拿不到章节链接的站点，由「最新章节 ID + 目录下标」反推每章 URL。
 - **链接直接打开（支持批量）**：首页搜索栏右侧的 🔗 可一次粘贴多行书籍详情页链接，解析后勾选（含全选）要打开的书，再逐个打开详情页处理；单个链接则直接打开。
 - **繁简转换**：下载设置里可选「不转换 / 繁→简 / 简→繁」，导出前统一转换（基于 OpenCC 单字映射表）。
 - **排版清洗**：去除 HTML 标签与站点广告文本，压缩多余空行（如 `&nbsp;` / 连续 `<br>` 造成的空行）。
@@ -105,17 +105,17 @@ bash build.sh
 
 ### 索引式章节（indexChapters）
 
-部分站点（如 `novel.cooks.tw`）的目录由 JS 动态生成，静态 HTML 里既没有 `href` 也没有章节 ID，常规 `chapterList` 无法枚举章节。若该站章节 ID 连续递增，可用如下配置：
+部分站点的目录由 JS 动态生成，静态 HTML 里既没有 `href` 也没有章节 ID，常规 `chapterList` 无法枚举章节。若该站章节 ID 连续递增，可用如下配置：
 
 ```json
 {
-  "name": "番茄小说（小說閱讀）",
-  "baseUrl": "https://novel.cooks.tw",
+  "name": "示例站点",
+  "baseUrl": "https://example.com",
   "contentRule": "<div class=\"chapter-content\">([\\s\\S]*?)</div>",
   "indexChapters": {
     "lastIdRule":  "reader\\.html\\?articleid=\\d+&(?:amp;)?chapterid=(\\d+)",
     "catalogRule": "data-idx=\"(\\d+)\"[^>]*>\\s*<span class=\"chapter-name\">([^<]*)</span>",
-    "urlTemplate": "https://novel.cooks.tw/reader.html?articleid={{article}}&chapterid={{id}}&lang=zh-TW",
+    "urlTemplate": "https://example.com/reader.html?articleid={{article}}&chapterid={{id}}",
     "articleRule": "articleid=(\\d+)"
   }
 }
@@ -136,7 +136,7 @@ bash build.sh
 
 最新 APK 通过 [Releases](https://github.com/a11122333/NovelDownloader/releases) 页面分发，请前往下载对应版本的 `NovelDownloader-<版本>.apk`。
 
-当前版本：**1.11**
+当前版本：**1.12**
 
 - 最低系统版本：Android 7.0（API 24），目标 API 34
 - 安装需在系统中允许「安装未知来源应用」
