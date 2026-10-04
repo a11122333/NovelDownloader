@@ -40,6 +40,9 @@ public final class Downloader {
 
     /** 加载目录。若书源未配置 chapterList，则把详情页本身视为单章。 */
     public static List<Chapter> loadChapters(BookSource s, String bookUrl) throws Exception {
+        if (s.isIndexed()) {
+            return loadIndexedChapters(s, bookUrl);
+        }
         List<Chapter> list = new ArrayList<>();
         if (s.chapterList == null || s.chapterList.isEmpty()) {
             list.add(new Chapter("正文", bookUrl));
@@ -69,6 +72,74 @@ public final class Downloader {
                     // 单页失败不影响整体
                 }
             }
+        }
+        return list;
+    }
+
+    /**
+     * 索引式章节：目录由 JS 动态渲染、静态 HTML 拿不到章节链接的站点。
+     * 思路：详情页拿到「最新章节 ID」→ 打开该章阅读页拿到整本目录（下标+标题）
+     * → 由「最新章节 ID - 最大下标」反推出基准 ID，再按序号生成每章 URL。
+     */
+    private static List<Chapter> loadIndexedChapters(BookSource s, String bookUrl) throws Exception {
+        BookSource.IndexChapters ix = s.indexChapters;
+        String bookHtml = Http.get(bookUrl, s.charset);
+        String lastIdStr = Rules.first(bookHtml, ix.lastIdRule);
+        if (lastIdStr == null || lastIdStr.trim().isEmpty()) {
+            throw new Exception("详情页解析不到最新章节 ID（lastIdRule）");
+        }
+        long lastId;
+        try {
+            lastId = Long.parseLong(lastIdStr.trim());
+        } catch (NumberFormatException e) {
+            throw new Exception("最新章节 ID 非法：" + lastIdStr);
+        }
+        String article = Rules.first(bookUrl, ix.articleRule);
+        if (article == null) {
+            article = "";
+        }
+        String readerUrl = ix.urlTemplate
+                .replace("{{article}}", article)
+                .replace("{{id}}", lastIdStr.trim());
+        String readerHtml = Http.get(readerUrl, s.charset, bookUrl);
+
+        List<String[]> items = Rules.findAll(readerHtml, ix.catalogRule, 2);
+        if (items.isEmpty()) {
+            throw new Exception("解析不到章节目录（catalogRule）");
+        }
+        java.util.TreeMap<Integer, String> titles = new java.util.TreeMap<>();
+        int maxIdx = -1;
+        for (String[] g : items) {
+            if (g[0] == null) {
+                continue;
+            }
+            int idx;
+            try {
+                idx = Integer.parseInt(g[0].trim());
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            String title = (g[1] == null || g[1].trim().isEmpty())
+                    ? ("第" + (idx + 1) + "章") : g[1].trim();
+            titles.put(idx, title);
+            if (idx > maxIdx) {
+                maxIdx = idx;
+            }
+        }
+        if (maxIdx < 0) {
+            throw new Exception("目录为空");
+        }
+        long base = lastId - maxIdx;
+        List<Chapter> list = new ArrayList<>();
+        for (int i = 0; i <= maxIdx; i++) {
+            String title = titles.get(i);
+            if (title == null) {
+                title = "第" + (i + 1) + "章";
+            }
+            String url = ix.urlTemplate
+                    .replace("{{article}}", article)
+                    .replace("{{id}}", String.valueOf(base + i));
+            list.add(new Chapter(title, url));
         }
         return list;
     }

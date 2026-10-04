@@ -116,7 +116,7 @@ public final class SourceStore {
                     continue;
                 }
                 BookSource s = BookSource.fromJson(o);
-                if (s.searchUrl.isEmpty()) {
+                if (!s.canSearch() && !s.isIndexed()) {
                     continue;
                 }
                 list.add(s);
@@ -150,6 +150,17 @@ public final class SourceStore {
         return out;
     }
 
+    /** 可参与关键字搜索的已启用书源（排除索引式等只支持链接打开的书源）。 */
+    public static List<BookSource> searchable(Context c) {
+        List<BookSource> out = new ArrayList<>();
+        for (BookSource s : load(c)) {
+            if (s.canSearch()) {
+                out.add(s);
+            }
+        }
+        return out;
+    }
+
     /** 解析用户粘贴的 JSON：支持单个对象或数组，返回 [成功数, 报错信息]。 */
     public static Object[] importJson(Context c, String text) {
         try {
@@ -176,8 +187,10 @@ public final class SourceStore {
                     continue;
                 }
                 BookSource s = BookSource.fromJson(o);
-                if (s.searchUrl.isEmpty() || s.listRule.isEmpty()
-                        || s.contentRule.isEmpty()) {
+                if (s.contentRule.isEmpty()) {
+                    continue;
+                }
+                if (!s.canSearch() && !s.isIndexed()) {
                     continue;
                 }
                 merged.put(o);

@@ -226,7 +226,7 @@ public class AboutActivity extends Activity {
         if (err != null) {
             Toast.makeText(this, err, Toast.LENGTH_LONG).show();
         } else if (ok == 0) {
-            Toast.makeText(this, "没有解析到有效书源（需含 searchUrl / listRule / contentRule）",
+            Toast.makeText(this, "没有解析到有效书源（需含 contentRule，且含 searchUrl+listRule 或 indexChapters）",
                     Toast.LENGTH_LONG).show();
         } else {
             Toast.makeText(this, "成功导入 " + ok + " 个书源", Toast.LENGTH_LONG).show();

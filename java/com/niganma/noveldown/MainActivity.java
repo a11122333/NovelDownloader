@@ -1,6 +1,7 @@
 package com.niganma.noveldown;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -150,6 +151,19 @@ public class MainActivity extends Activity {
         field.addView(clear);
         outer.addView(field);
 
+        TextView link = UiUtil.text(this, "🔗", 16, UiUtil.PRIMARY);
+        int lp2 = UiUtil.dp(this, 9);
+        link.setGravity(Gravity.CENTER);
+        link.setPadding(lp2, lp2, lp2, lp2);
+        link.setBackground(UiUtil.ripple(UiUtil.PRIMARY,
+                UiUtil.round(UiUtil.SURFACE_CONTAINER_HIGH, 22, this), this));
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        llp.leftMargin = UiUtil.dp(this, 10);
+        link.setLayoutParams(llp);
+        link.setOnClickListener(v -> openByLink());
+        outer.addView(link);
+
         TextView btn = UiKit.button(this, "搜索", new Runnable() {
             @Override
             public void run() {
@@ -226,7 +240,7 @@ public class MainActivity extends Activity {
     }
 
     private void refreshSources() {
-        enabledSources = SourceStore.load(this);
+        enabledSources = SourceStore.searchable(this);
         Set<String> saved = loadSelected();
         selected.clear();
         for (BookSource s : enabledSources) {
@@ -240,8 +254,8 @@ public class MainActivity extends Activity {
     private void rebuildChips() {
         chipWrap.removeAllViews();
         if (enabledSources.isEmpty()) {
-            chipWrap.addView(UiUtil.text(this, "没有启用的书源，点右上角「书源」开启或导入",
-                    13, UiUtil.ON_SURFACE_VARIANT));
+            chipWrap.addView(UiUtil.text(this, "没有可搜索的书源。可点右上角「书源」开启或导入，"
+                    + "或用搜索栏右侧 🔗 粘贴书籍链接直接打开", 13, UiUtil.ON_SURFACE_VARIANT));
         } else {
             final int perRow = 3;
             LinearLayout row = null;
@@ -348,6 +362,93 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {
         }
         return set;
+    }
+
+    /** 粘贴书籍详情页链接，用匹配的书源直接打开（适用于索引式书源，无法搜索）。 */
+    private void openByLink() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int p = UiUtil.dp(this, 4);
+        box.setPadding(p, UiUtil.dp(this, 4), p, 0);
+        box.addView(UiUtil.text(this, "粘贴书籍详情页链接，将用对应书源解析目录并下载。\n"
+                + "例：https://novel.cooks.tw/novel.html?articleid=3265", 13, UiUtil.ON_SURFACE_VARIANT));
+        final EditText input = UiKit.textField(this,
+                "https://…/novel.html?articleid=…", InputType.TYPE_TEXT_VARIATION_URI);
+        LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        ilp.topMargin = UiUtil.dp(this, 8);
+        input.setLayoutParams(ilp);
+        box.addView(input);
+        AlertDialog dlg = new AlertDialog.Builder(this)
+                .setTitle("链接打开")
+                .setView(box)
+                .setPositiveButton("打开", (d, w) -> launchByLink(input.getText().toString().trim()))
+                .setNegativeButton("取消", null)
+                .create();
+        dlg.show();
+        dlg.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(UiUtil.PRIMARY);
+        dlg.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(UiUtil.ON_SURFACE_VARIANT);
+    }
+
+    private void launchByLink(final String url) {
+        if (url.isEmpty() || !url.startsWith("http")) {
+            status.setText("请输入以 http:// 或 https:// 开头的书籍链接");
+            return;
+        }
+        BookSource src = null;
+        for (BookSource s : SourceStore.all(this)) {
+            if (s.matches(url)) {
+                src = s;
+                break;
+            }
+        }
+        if (src == null) {
+            status.setText("没有匹配的书源（该链接的域名不在内置/自定义书源中）");
+            return;
+        }
+        final String sourceName = src.name;
+        final String charset = src.charset;
+        status.setText("正在打开链接…");
+        App.POOL.execute(new Runnable() {
+            @Override
+            public void run() {
+                final String title = fetchTitle(url, charset);
+                App.UI.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        status.setText("");
+                        Intent it = new Intent(MainActivity.this, DetailActivity.class);
+                        it.putExtra("name", title);
+                        it.putExtra("author", "");
+                        it.putExtra("url", url);
+                        it.putExtra("source", sourceName);
+                        startActivity(it);
+                    }
+                });
+            }
+        });
+    }
+
+    /** 取网页 <title> 作为书名（去掉站点后缀）。 */
+    private static String fetchTitle(String url, String charset) {
+        try {
+            String html = Http.get(url, charset);
+            String t = Rules.first(html, "<title[^>]*>([^<]*)</title>");
+            if (t == null) {
+                return "";
+            }
+            t = t.trim();
+            for (String sep : new String[]{"_", "|", " - ", " – ", " — ", "-", "—"}) {
+                int i = t.indexOf(sep);
+                if (i > 0) {
+                    t = t.substring(0, i).trim();
+                    break;
+                }
+            }
+            return t;
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private void doSearch() {
