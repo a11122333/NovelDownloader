@@ -38,6 +38,7 @@ public class AboutActivity extends Activity {
             + "  \"tocUrl\": \"可选，目录页模板，{{book}} 换成书籍详情页地址\",\n"
             + "  \"tocPages\": \"可选，目录分页正则，组1=其余目录页地址\",\n"
             + "  \"contentPages\": \"可选，正文分页正则，组1=本章下一页地址\",\n"
+            + "  \"indexChapters\": \"可选，索引式章节(目录由JS渲染、无链接的站点)对象\",\n"
             + "  \"replace\": [[\"<br\\\\s*/?>\",\"\\n\"],[\"&nbsp;\",\" \"],[\"<[^>]+>\",\"\"]]\n"
             + "}\n\n"
             + "说明：\n"
@@ -45,6 +46,8 @@ public class AboutActivity extends Activity {
             + "· 相对链接会自动补全为绝对链接。\n"
             + "· 正文会依次执行 replace 里的正则替换清洗成纯文本。\n"
             + "· 配置 tocPages / contentPages 可自动翻页合并目录与正文分页。\n"
+            + "· indexChapters 内含 lastIdRule / catalogRule / urlTemplate，"
+            + "用于目录由 JS 生成、页面无章节链接的站点（由最新章节ID+目录下标反推章节URL）。\n"
             + "· 若省略 chapterList，则把详情页当作单章下载。\n"
             + "· 下载支持指定章节范围，并可调节多线程数 1 - " + Downloader.MAX_THREADS
             + "（默认 " + Downloader.DEFAULT_THREADS + "）。\n"
@@ -98,7 +101,7 @@ public class AboutActivity extends Activity {
         credit.setPadding(0, UiUtil.dp(this, 8), 0, 0);
         card.addView(credit);
 
-        TextView v = UiUtil.text(this, "版本 " + App.VERSION + "  ·  纯本地运行，无广告、无联网上报",
+        TextView v = UiUtil.text(this, "版本 " + App.version(this) + "  ·  纯本地运行，无广告、无联网上报",
                 12, UiUtil.ON_SURFACE_VARIANT);
         v.setPadding(0, UiUtil.dp(this, 8), 0, 0);
         card.addView(v);

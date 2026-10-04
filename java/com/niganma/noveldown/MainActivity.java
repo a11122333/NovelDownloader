@@ -310,6 +310,15 @@ public class MainActivity extends Activity {
                 }
             }
         }
+        // 提示仅支持链接打开的书源（索引式，不进搜索范围）
+        int linkOnly = SourceStore.load(this).size() - enabledSources.size();
+        if (linkOnly > 0) {
+            TextView hint = UiUtil.text(this, "另有 " + linkOnly
+                    + " 个仅支持链接打开的书源（索引式），用搜索栏右侧 🔗 粘贴书籍链接使用",
+                    11, UiUtil.ON_SURFACE_VARIANT);
+            hint.setPadding(0, UiUtil.dp(this, 8), 0, 0);
+            chipWrap.addView(hint);
+        }
         updateSelectInfo();
     }
 

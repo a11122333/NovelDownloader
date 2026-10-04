@@ -64,7 +64,7 @@
     "replace": [["<br\\s*/?>", "\n"], ["</p>", "\n"], ["<[^>]+>", ""], ["&nbsp;", " "]]
   },
   {
-    "name": "小說閱讀",
+    "name": "番茄小说（小說閱讀）",
     "charset": "utf-8",
     "baseUrl": "https://novel.cooks.tw",
     "contentRule": "<div class=\"chapter-content\">([\\s\\S]*?)</div>",

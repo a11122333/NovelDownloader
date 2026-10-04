@@ -11,7 +11,7 @@
 - **指定章节范围下载**：下载时可指定起始 / 结束章节，只下载需要的部分。
 - **多线程下载**：1 - 64 线程可选（默认 8），章节结果按下标归位，保证顺序不乱。
 - **正文分页合并**：支持章内分页（`contentPages`）逐页抓取并合并，避免长章节被截断。
-- **索引式章节**（`indexChapters`）：适配目录由 JS 动态渲染、静态 HTML 拿不到章节链接的站点（如小说阅读 cooks.tw），由「最新章节 ID + 目录下标」反推每章 URL。
+- **索引式章节**（`indexChapters`）：适配目录由 JS 动态渲染、静态 HTML 拿不到章节链接的站点（如番茄小说聚合站 cooks.tw），由「最新章节 ID + 目录下标」反推每章 URL。
 - **链接直接打开**：首页搜索栏右侧的 🔗 可粘贴书籍详情页链接，用匹配的书源直接解析下载（适用于不支持搜索的动态站）。
 - **繁简转换**：下载设置里可选「不转换 / 繁→简 / 简→繁」，导出前统一转换（基于 OpenCC 单字映射表）。
 - **排版清洗**：去除 HTML 标签与站点广告文本，压缩多余空行（如 `&nbsp;` / 连续 `<br>` 造成的空行）。
@@ -109,7 +109,7 @@ bash build.sh
 
 ```json
 {
-  "name": "小說閱讀",
+  "name": "番茄小说（小說閱讀）",
   "baseUrl": "https://novel.cooks.tw",
   "contentRule": "<div class=\"chapter-content\">([\\s\\S]*?)</div>",
   "indexChapters": {
@@ -136,7 +136,7 @@ bash build.sh
 
 最新 APK 通过 [Releases](https://github.com/a11122333/NovelDownloader/releases) 页面分发，请前往下载对应版本的 `NovelDownloader-<版本>.apk`。
 
-当前版本：**1.9**
+当前版本：**1.10**
 
 - 最低系统版本：Android 7.0（API 24），目标 API 34
 - 安装需在系统中允许「安装未知来源应用」
