@@ -39,23 +39,30 @@ public final class Searcher {
                 @Override
                 public void run() {
                     final List<SearchBook> found = new java.util.ArrayList<>();
-                    boolean err = false;
-                    try {
-                        String url = Rules.fill(s.searchUrl, key, page);
-                        String html = Http.get(url, s.charset, null, s.userAgent);
-                        List<String[]> items = Rules.findAll(html, s.listRule, 3);
-                        for (String[] g : items) {
-                            if (g[0] == null || g[1] == null) {
-                                continue;
+                    boolean err = true;
+                    // 一次不成就再试一次：十几个书源并发时，个别站点（例如需要先拿
+                    // WAF Cookie 的书海阁）会因为手机网络抖动返回空页；重试一次就稳了
+                    for (int attempt = 0; attempt < 2 && found.isEmpty(); attempt++) {
+                        found.clear();
+                        err = false;
+                        try {
+                            String url = Rules.fill(s.searchUrl, key, page);
+                            // 支持 POST 型书源（内部会按需先预热拿 Cookie）
+                            String html = s.fetchSearchHtml(key, page);
+                            List<String[]> items = Rules.findAll(html, s.listRule, 3);
+                            for (String[] g : items) {
+                                if (g[0] == null || g[1] == null) {
+                                    continue;
+                                }
+                                String bookUrl = s.bookUrlTemplate.isEmpty()
+                                        ? Rules.absUrl(url, g[0])
+                                        : s.bookUrlTemplate.replace("{{id}}", g[0].trim());
+                                found.add(new SearchBook(s.name, g[1],
+                                        g.length > 2 ? g[2] : null, bookUrl));
                             }
-                            String bookUrl = s.bookUrlTemplate.isEmpty()
-                                    ? Rules.absUrl(url, g[0])
-                                    : s.bookUrlTemplate.replace("{{id}}", g[0].trim());
-                            found.add(new SearchBook(s.name, g[1],
-                                    g.length > 2 ? g[2] : null, bookUrl));
+                        } catch (Exception e) {
+                            err = true;
                         }
-                    } catch (Exception e) {
-                        err = true;
                     }
                     final boolean failed = err;
                     for (final SearchBook b : found) {

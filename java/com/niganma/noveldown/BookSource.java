@@ -55,6 +55,12 @@ public class BookSource {
     public String userAgent = "";
     public String baseUrl = "";
     public String searchUrl = "";
+    /** 搜索方式："get"（默认）或 "post"。 */
+    public String searchMethod = "get";
+    /** POST 搜索的表单体，支持 {{key}} / {{page}}，如 "searchkey={{key}}"。 */
+    public String searchBody = "";
+    /** 搜索前先 GET 一次这个地址（拿会话 Cookie），支持 {{book}}=搜索 URL。 */
+    public String warmUp = "";
     public String listRule = "";
     public String chapterList = "";
     public String contentRule = "";
@@ -101,6 +107,30 @@ public class BookSource {
         return !searchUrl.isEmpty() && !listRule.isEmpty();
     }
 
+    /**
+     * 抓搜索页（GET / POST 都支持）。
+     *
+     * <p>有些站点的搜索只收 POST，而且必须先访问一次首页拿到 WAF 会话 Cookie
+     * （否则结果页永远是空的），这时用 {@link #warmUp} + {@link #searchMethod}
+     * 描述即可。</p>
+     */
+    public String fetchSearchHtml(String key, int page) throws java.io.IOException {
+        String url = Rules.fill(searchUrl, key, page);
+        if (warmUp != null && !warmUp.isEmpty()) {
+            try {
+                Http.get(Rules.fillBook(warmUp, url), charset, null, userAgent);
+            } catch (java.io.IOException ignored) {
+                // 预热失败不致命，继续按原方式搜索
+            }
+        }
+        if ("post".equalsIgnoreCase(searchMethod)) {
+            String tpl = (searchBody == null || searchBody.isEmpty())
+                    ? "searchkey={{key}}" : searchBody;
+            return Http.post(url, Rules.fill(tpl, key, page), charset, url, userAgent);
+        }
+        return Http.get(url, charset, null, userAgent);
+    }
+
     public static BookSource fromJson(JSONObject o) {
         BookSource s = new BookSource();
         s.name = o.optString("name", "未命名");
@@ -108,6 +138,9 @@ public class BookSource {
         s.userAgent = o.optString("userAgent", "");
         s.baseUrl = o.optString("baseUrl", "");
         s.searchUrl = o.optString("searchUrl", "");
+        s.searchMethod = o.optString("searchMethod", "get");
+        s.searchBody = o.optString("searchBody", "");
+        s.warmUp = o.optString("warmUp", "");
         s.listRule = o.optString("listRule", "");
         s.chapterList = o.optString("chapterList", "");
         s.contentRule = o.optString("contentRule", "");
@@ -154,6 +187,15 @@ public class BookSource {
                 o.put("baseUrl", baseUrl);
             }
             o.put("searchUrl", searchUrl);
+            if (!"get".equalsIgnoreCase(searchMethod)) {
+                o.put("searchMethod", searchMethod);
+            }
+            if (!searchBody.isEmpty()) {
+                o.put("searchBody", searchBody);
+            }
+            if (!warmUp.isEmpty()) {
+                o.put("warmUp", warmUp);
+            }
             o.put("listRule", listRule);
             o.put("chapterList", chapterList);
             o.put("contentRule", contentRule);
@@ -178,6 +220,14 @@ public class BookSource {
             }
             if (!tocUrl.isEmpty()) {
                 o.put("tocUrl", tocUrl);
+            }
+            // 这两个字段 fromJson 会读，导出时必须带上，否则「导出→导入」
+            // 之后正文不再反转义、搜索链接模板也会丢
+            if (!bookUrlTemplate.isEmpty()) {
+                o.put("bookUrlTemplate", bookUrlTemplate);
+            }
+            if (jsonEscape) {
+                o.put("jsonEscape", true);
             }
             if (!tocPages.isEmpty()) {
                 o.put("tocPages", tocPages);
