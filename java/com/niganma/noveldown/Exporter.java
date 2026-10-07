@@ -329,7 +329,7 @@ public final class Exporter {
      * 分章导出前先清掉上一次留下的章节文件。
      *
      * <p>目录名带日期，同一天重新下载会复用同一个目录；不清理的话新旧两份会
-     * 混在一起（上一版就产出过 206 个文件、其中一半是 0 字节的空章）。</p>
+     * 混在一起：上一轮导出的空章文件会留在目录里，看起来像是重复导出了一遍。</p>
      */
     private static void cleanSplitDir(Context ctx, String relDir) {
         final Pattern p = Pattern.compile("^\\d{4}(-\\d{4})?_.*\\.txt$");

@@ -463,7 +463,7 @@ public final class UiKit {
             label.setLayoutParams(tlp);
             item.addView(label);
 
-            // 点击反馈：把按下状态转给图标上的圆形涟漪。图标尺寸就是胶囊
+            // 点击反馈：把按下状态转给图标上的胶囊状涟漪。图标尺寸就是胶囊
             // 区域，涟漪自然只覆盖图标那一块，而且完全不碰布局。
             item.setOnTouchListener(new View.OnTouchListener() {
                 @Override
@@ -595,7 +595,7 @@ public final class UiKit {
      * 操作按钮行：统一 8dp 间距，一行放不下自动换行。
      *
      * <p>以前靠每个调用点自己给第二个按钮设 leftMargin，漏一个就「贴到一块」
-     * （已下载卡片里「重试失败章节」和「重新下载」就是这么挨上的）；三个中文
+     * （少设一个，两个按钮就会贴在一起）；三个中文
      * 按钮在窄屏上还会顶出卡片被裁掉，所以排布也统一收到这里。</p>
      */
     public static ActionRow actionRow(Activity a) {

@@ -1647,7 +1647,7 @@ public class MainActivity extends Activity implements DownloadManager.Listener {
     /**
      * 选择分章 TXT 每个文件包含多少章。
      *
-     * <p>只对「分章 TXT」格式有意义，所以顶部会顺手提示当前导出格式。</p>
+     * <p>只对「分章 TXT」格式有意义，所以顶部会一并提示当前导出格式。</p>
      */
     private void pickSplitGroup() {
         final int[] presets = {1, 5, 10, 20, 50, 100};
