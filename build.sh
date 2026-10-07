@@ -8,28 +8,31 @@ PLATFORM=$SDK/platforms/android-34/android.jar
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 PATH=$JAVA_HOME/bin:$PATH
 
-PROJ=/workspace/NovelDownloader
+PROJ=${PROJ:-/workspace/NovelDownloader}
 OUT=$PROJ/build
-APK_NAME="NovelDownloader-1.15.apk"
 
 MIN_SDK=24
 TARGET_SDK=34
-VER_CODE=16
-VER_NAME=1.15
+VER_CODE=20
+VER_NAME=2.0
+
+APK_NAME="NovelDownloader-$VER_NAME.apk"
+ZIP_NAME="NovelDownloader-$VER_NAME.zip"
 
 rm -rf "$OUT"
-mkdir -p "$OUT/compiled" "$OUT/classes" "$OUT/dex"
+mkdir -p "$OUT/compiled" "$OUT/classes" "$OUT/dex" "$OUT/gen"
 
 echo "==> [1/7] aapt2 compile 资源"
 "$BT/aapt2" compile --dir "$PROJ/res" -o "$OUT/compiled/res.zip"
 
-echo "==> [2/7] aapt2 link 生成基础 APK"
+echo "==> [2/7] aapt2 link 生成基础 APK 与 R.java"
 "$BT/aapt2" link \
   -o "$OUT/base.apk" \
   -I "$PLATFORM" \
   --manifest "$PROJ/AndroidManifest.xml" \
   -R "$OUT/compiled/res.zip" \
   -A "$PROJ/assets" \
+  --java "$OUT/gen" \
   --auto-add-overlay \
   --min-sdk-version $MIN_SDK \
   --target-sdk-version $TARGET_SDK \
@@ -37,8 +40,9 @@ echo "==> [2/7] aapt2 link 生成基础 APK"
   --version-name $VER_NAME \
   --no-version-vectors
 
-echo "==> [3/7] javac 编译 Java"
+echo "==> [3/7] javac 编译 Java（源码 + 生成的 R.java）"
 find "$PROJ/java" -name '*.java' > "$OUT/sources.txt"
+find "$OUT/gen" -name '*.java' >> "$OUT/sources.txt"
 javac -encoding UTF-8 --release 8 \
   -classpath "$PLATFORM" -d "$OUT/classes" @"$OUT/sources.txt"
 
@@ -84,6 +88,6 @@ ls -la "$PROJ/$APK_NAME"
 sha256sum "$PROJ/$APK_NAME"
 
 # 额外打包 zip：避免中文名/传输导致 APK 损坏，zip 能保证二进制完整性
-( cd "$PROJ" && rm -f "NovelDownloader-1.15.zip" && zip -q -9 "NovelDownloader-1.15.zip" "$APK_NAME" )
-echo "ZIP -> $PROJ/NovelDownloader-1.15.zip"
-ls -la "$PROJ/NovelDownloader-1.15.zip"
+( cd "$PROJ" && rm -f "$ZIP_NAME" && zip -q -9 "$ZIP_NAME" "$APK_NAME" )
+echo "ZIP -> $PROJ/$ZIP_NAME"
+ls -la "$PROJ/$ZIP_NAME"

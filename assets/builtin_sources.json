@@ -220,5 +220,216 @@
       ]
     ],
     "paragraphIndent": "　　"
+  },
+  {
+    "name": "笔趣阁5200",
+    "charset": "gbk",
+    "baseUrl": "http://www.biquge5200.cc",
+    "searchUrl": "http://www.biquge5200.cc/modules/article/search.php?searchkey={{key}}",
+    "listRule": "<tr>\\s*<td class=\"odd\"><a href=\"([^\"]+)\"[^>]*>([^<]+)</a></td>\\s*<td class=\"even\"><a[^>]*>[^<]*</a></td>\\s*<td class=\"odd\">([^<]*)</td>",
+    "chapterList": "(?:^[\\s\\S]*?正文</dt>\\s*)?<dd><a href=['\"]([^'\"]+)['\"][^>]*>([^<]+)</a></dd>",
+    "contentRule": "<div id=\"content\"[^>]*>([\\s\\S]*?)<div class=\"bottem2\">",
+    "replace": [
+      [
+        "<script[\\s\\S]*?</script>",
+        ""
+      ],
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ],
+      [
+        "阅读最新章节请锁定",
+        ""
+      ],
+      [
+        "哪里的小说更新最快？请认准",
+        ""
+      ],
+      [
+        "小说尽在",
+        ""
+      ],
+      [
+        "欢迎您来到[^\\s　]{0,60}读书环境",
+        ""
+      ],
+      [
+        "\\^\\^[^\\^]{0,40}\\^+",
+        ""
+      ],
+      [
+        "★[^★]{0,40}★",
+        ""
+      ],
+      [
+        "^[\\s　]*[^　\\n]{1,12}第[0-9０-９零〇一二三四五六七八九十百千两]{1,8}章[^　\\n]{0,40}(?=[　\\n]|$)",
+        ""
+      ]
+    ]
+  },
+  {
+    "name": "笔趣阁666",
+    "charset": "gbk",
+    "baseUrl": "http://www.666biquge.com/",
+    "searchUrl": "http://www.666biquge.com/modules/article/search.php?searchkey={{key}}",
+    "listRule": "<td class=\"odd\"><a href=\"(/[^\"]+)\"[^>]*>([^<]+)</a></td>[\\s\\S]*?<td class=\"odd\">([^<]*)</td>",
+    "chapterList": "(?:\\A[\\s\\S]*?正文</dt>[\\s\\S]*?)?<dd><a href=['\"]([^'\"]+)['\"][^>]*>([^<]+)</a></dd>",
+    "contentRule": "<div id=\"content\"[^>]*>([\\s\\S]*?)</div>\\s*<script",
+    "replace": [
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "</p>",
+        "\n"
+      ],
+      [
+        "<script[\\s\\S]*?</script>",
+        ""
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ],
+      [
+        "&amp;",
+        "&"
+      ],
+      [
+        "小说尽在",
+        ""
+      ]
+    ]
+  },
+  {
+    "name": "笔趣阁b5200",
+    "charset": "gbk",
+    "baseUrl": "http://www.b5200.net",
+    "searchUrl": "http://www.b5200.net/modules/article/search.php?searchkey={{key}}",
+    "listRule": "<td class=\"odd\"><a href=\"([^\"]+)\"[^>]*>([^<]+)</a></td>[\\s\\S]*?<td class=\"odd\">([^<]*)</td>",
+    "chapterList": "(?:\\A[\\s\\S]*?正文</dt>[\\s\\S]*?)?<dd><a href=[\"\\']([^\"\\']+)[\"\\'][^>]*>([^<]+)</a></dd>",
+    "contentRule": "<div[^>]+id=\"content\"[^>]*>([\\s\\S]*?)</div>\\s*<script",
+    "replace": [
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "</p>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ],
+      [
+        "<script[\\s\\S]*?</script>",
+        ""
+      ],
+      [
+        "小说尽在",
+        ""
+      ]
+    ]
+  },
+  {
+    "name": "修文小说网",
+    "charset": "gbk",
+    "baseUrl": "http://www.xiunews.com/",
+    "searchUrl": "http://www.xiunews.com/modules/article/search.php?searchkey={{key}}",
+    "listRule": "<td class=\"odd\"><a href=\"([^\"]+)\"[^>]*>([^<]+)</a></td>[\\s\\S]*?<td class=\"odd\">([^<]*)</td>",
+    "chapterList": "(?:\\A[\\s\\S]*?正文</dt>[\\s\\S]*?)?<dd><a href=[\"']([^\"']+)[\"'][^>]*>(?!欢迎收藏|请假|公告|通知|上架|感言|作品相关|必看|新书|停更|致读者|更新说明)([^<]+)</a></dd>",
+    "contentRule": "<div[^>]+id=\"content\"[^>]*>([\\s\\S]*?)</div>\\s*<script",
+    "replace": [
+      [
+        "<script[\\s\\S]*?</script>",
+        ""
+      ],
+      [
+        "try\\{ggauto\\(\\);\\}\\s*catch\\(ex\\)\\{\\}",
+        ""
+      ],
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "</p>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ],
+      [
+        "小说尽在",
+        ""
+      ]
+    ]
+  },
+  {
+    "name": "书海阁",
+    "charset": "utf-8",
+    "baseUrl": "https://www.shuhaige.net/",
+    "searchUrl": "https://www.shuhaige.net/search.html",
+    "searchMethod": "post",
+    "searchBody": "searchkey={{key}}",
+    "warmUp": "https://www.shuhaige.net/",
+    "listRule": "<dt><a href=\"(/[^\"]+)\">[\\s\\S]*?<dd><h3><a[^>]*>([^<]+)</a></h3></dd>[\\s\\S]*?作者：<span>([^<]+)</span>",
+    "chapterList": "<dd><a href=\"(/\\d+/\\d+\\.html)\">([^<]+)</a></dd>",
+    "contentRule": "<div[^>]+id=\"content\"[^>]*>([\\s\\S]*?)</div>",
+    "contentPages": "<a[^>]+href=\"([^\"]+)\"[^>]*>\\s*下一页\\s*</a>",
+    "replace": [
+      [
+        "<br\\s*/?>",
+        "\n"
+      ],
+      [
+        "</p>",
+        "\n"
+      ],
+      [
+        "<[^>]+>",
+        ""
+      ],
+      [
+        "&nbsp;",
+        " "
+      ],
+      [
+        "&amp;",
+        "&"
+      ],
+      [
+        "(?:本小章还未完|小主)[^\\n]{0,60}?(?:继续阅读|更精彩)[！!]?[^\\n]*",
+        ""
+      ],
+      [
+        "喜欢[^。\\n]{0,40}?请大家收藏：[^\\n]*",
+        ""
+      ]
+    ]
   }
 ]
