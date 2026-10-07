@@ -3,8 +3,8 @@ package com.niganma.noveldown;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.Intent;
+import android.net.Uri;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
@@ -13,26 +13,26 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.List;
 
-/** 书籍详情：加载目录 + 按章节范围下载（导出明文 txt）。 */
+/**
+ * 书籍详情：加载目录 + 指定章节范围后交给 {@link DownloadManager} 后台下载。
+ *
+ * <p>线程数与文字转换属于全局下载偏好（在设置页调整），这里只负责选择章节
+ * 范围。点「开始下载」后即可返回，下载不会因为关闭本页面而中断。</p>
+ */
 public class DetailActivity extends Activity {
 
     private static final int REQ_WRITE = 1001;
-    private static final String PREF = "novel_down";
-    private static final String KEY_THREADS = "download_threads";
-    private static final String KEY_FROM = "download_from";
-    private static final String KEY_TO = "download_to";
-    private static final String KEY_CONV = "download_conv";
 
     private BookSource source;
     private String bookName, author, bookUrl;
@@ -40,13 +40,13 @@ public class DetailActivity extends Activity {
     private int convMode = CharConv.NONE;
 
     private TextView status;
-    private ProgressBar bar;
     private TextView downloadBtn;
+    /** 当前选中的章节范围（用于在按钮上显示「已选 N 章」）。 */
+    private int selFrom = 1;
+    private int selTo = 0;
     private ChapterAdapter adapter;
     private List<Chapter> chapters;
     private List<Chapter> pendingSelection;
-    private int pendingThreads;
-    private int pendingConv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,15 +57,17 @@ public class DetailActivity extends Activity {
         bookUrl = getIntent().getStringExtra("url");
         String sourceName = getIntent().getStringExtra("source");
         source = findSource(sourceName);
-        threads = Downloader.clampThreads(
-                prefs().getInt(KEY_THREADS, Downloader.DEFAULT_THREADS));
-        convMode = clampConv(prefs().getInt(KEY_CONV, CharConv.NONE));
         setContentView(buildUi());
         startLoadChapters();
+        applyTransitions();
     }
 
-    private SharedPreferences prefs() {
-        return getSharedPreferences(PREF, Context.MODE_PRIVATE);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // 设置页可能刚改过下载偏好
+        threads = DownloadPrefs.threads(this);
+        convMode = DownloadPrefs.conv(this);
     }
 
     private BookSource findSource(String name) {
@@ -94,27 +96,41 @@ public class DetailActivity extends Activity {
         LinearLayout card = UiKit.card(this);
         LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        clp.setMargins(UiUtil.dp(this, 16), UiUtil.dp(this, 14), UiUtil.dp(this, 16), UiUtil.dp(this, 6));
+        clp.setMargins(UiUtil.dp(this, 16), UiUtil.dp(this, 12),
+                UiUtil.dp(this, 16), UiUtil.dp(this, 6));
         card.setLayoutParams(clp);
 
-        TextView title = UiUtil.text(this, bookName == null ? "" : bookName, 19, UiUtil.ON_SURFACE);
+        TextView title = UiUtil.text(this, bookName == null ? "" : bookName,
+                UiUtil.TYPE_TITLE_MEDIUM, UiUtil.ON_SURFACE);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         card.addView(title);
 
         String sub = "作者：" + (author == null || author.isEmpty() ? "佚名" : author)
                 + "   ·   来源：" + (source == null ? "未知" : source.name);
-        TextView s = UiUtil.text(this, sub, 12, UiUtil.ON_SURFACE_VARIANT);
+        TextView s = UiUtil.text(this, sub, UiUtil.TYPE_BODY_SMALL, UiUtil.ON_SURFACE_VARIANT);
         s.setPadding(0, UiUtil.dp(this, 6), 0, 0);
         card.addView(s);
 
-        TextView url = UiUtil.text(this, bookUrl == null ? "" : bookUrl, 11, UiUtil.PRIMARY);
+        // 书籍原始链接：点击后用浏览器打开
+        TextView url = UiUtil.text(this, bookUrl == null ? "" : bookUrl,
+                UiUtil.TYPE_LABEL_SMALL, UiUtil.PRIMARY);
         url.setSingleLine(true);
         url.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
-        url.setPadding(0, UiUtil.dp(this, 6), 0, 0);
+        url.setPadding(UiUtil.dp(this, 10), UiUtil.dp(this, 8),
+                UiUtil.dp(this, 10), UiUtil.dp(this, 8));
+        url.setBackground(UiUtil.ripple(UiUtil.PRIMARY, UiUtil.round(
+                UiUtil.SURFACE_CONTAINER_HIGH, UiUtil.SHAPE_SMALL, this), this));
+        url.setOnClickListener(v -> openBookUrl());
+        url.setContentDescription("在浏览器中打开书籍页面");
         card.addView(url);
+
+        TextView urlHint = UiUtil.text(this, "点击链接可用浏览器打开原页面",
+                UiUtil.TYPE_LABEL_SMALL, UiUtil.ON_SURFACE_VARIANT);
+        urlHint.setPadding(0, UiUtil.dp(this, 4), 0, 0);
+        card.addView(urlHint);
         root.addView(card);
 
-        downloadBtn = UiKit.button(this, "下载（导出明文 TXT）", new Runnable() {
+        downloadBtn = UiKit.button(this, "选择章节并下载", new Runnable() {
             @Override
             public void run() {
                 confirmDownload();
@@ -122,26 +138,17 @@ public class DetailActivity extends Activity {
         });
         LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        blp.setMargins(UiUtil.dp(this, 16), UiUtil.dp(this, 6), UiUtil.dp(this, 16), UiUtil.dp(this, 6));
+        blp.setMargins(UiUtil.dp(this, 16), UiUtil.dp(this, 6),
+                UiUtil.dp(this, 16), UiUtil.dp(this, 6));
         downloadBtn.setLayoutParams(blp);
         UiKit.setEnabledText(downloadBtn, false);
         root.addView(downloadBtn);
 
-        status = UiUtil.text(this, "正在加载目录…", 12, UiUtil.ON_SURFACE_VARIANT);
-        status.setPadding(UiUtil.dp(this, 20), UiUtil.dp(this, 4), UiUtil.dp(this, 20), UiUtil.dp(this, 4));
+        status = UiUtil.text(this, "正在加载目录…", UiUtil.TYPE_BODY_SMALL,
+                UiUtil.ON_SURFACE_VARIANT);
+        status.setPadding(UiUtil.dp(this, 20), UiUtil.dp(this, 4),
+                UiUtil.dp(this, 20), UiUtil.dp(this, 6));
         root.addView(status);
-
-        bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        bar.setMax(100);
-        bar.setProgress(0);
-        bar.setProgressTintList(ColorStateList.valueOf(UiUtil.PRIMARY));
-        bar.setProgressBackgroundTintList(ColorStateList.valueOf(UiUtil.PRIMARY_CONTAINER));
-        LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, UiUtil.dp(this, 6));
-        plp.setMargins(UiUtil.dp(this, 20), UiUtil.dp(this, 2), UiUtil.dp(this, 20), UiUtil.dp(this, 6));
-        bar.setLayoutParams(plp);
-        bar.setVisibility(View.GONE);
-        root.addView(bar);
 
         ListView list = new ListView(this);
         list.setDivider(null);
@@ -156,6 +163,19 @@ public class DetailActivity extends Activity {
         root.addView(list);
 
         return root;
+    }
+
+    /** 用系统浏览器打开书籍详情页原链接。 */
+    private void openBookUrl() {
+        if (bookUrl == null || bookUrl.isEmpty()) {
+            Toast.makeText(this, "这本书没有可跳转的链接", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(bookUrl)));
+        } catch (Exception e) {
+            Toast.makeText(this, "没有可打开链接的应用", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void startLoadChapters() {
@@ -177,6 +197,9 @@ public class DetailActivity extends Activity {
                                 status.setText("未解析到章节目录（请检查 chapterList 规则）");
                             } else {
                                 status.setText("共 " + list.size() + " 章");
+                                selFrom = 1;
+                                selTo = list.size();
+                                updateDownloadBtn();
                                 UiKit.setEnabledText(downloadBtn, true);
                             }
                         }
@@ -193,24 +216,45 @@ public class DetailActivity extends Activity {
         });
     }
 
-    /** 下载设置：可指定章节范围（起-止）+ 线程数。 */
+    /** 按当前选中范围刷新下载按钮文案（主标题 + 小一号的范围说明）。 */
+    private void updateDownloadBtn() {
+        if (downloadBtn == null) {
+            return;
+        }
+        int total = chapters == null ? 0 : chapters.size();
+        String main = "选择章节并下载";
+        if (total <= 0 || selTo <= 0) {
+            downloadBtn.setText(main);
+            return;
+        }
+        int n = Math.max(0, selTo - selFrom + 1);
+        String sub = "（已选 " + n + " 章：" + selFrom + " - " + selTo + "）";
+        android.text.SpannableString sp = new android.text.SpannableString(main + sub);
+        sp.setSpan(new android.text.style.RelativeSizeSpan(0.78f), main.length(),
+                sp.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        downloadBtn.setText(sp);
+    }
+
+    /** 下载设置：指定章节范围；线程数与转换沿用设置页的全局偏好。 */
     private void confirmDownload() {
         if (chapters == null || chapters.isEmpty()) {
             Toast.makeText(this, "目录还没准备好", Toast.LENGTH_SHORT).show();
             return;
         }
+        threads = DownloadPrefs.threads(this);
+        convMode = DownloadPrefs.conv(this);
         final int total = chapters.size();
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(UiUtil.dp(this, 4), UiUtil.dp(this, 4), UiUtil.dp(this, 4), 0);
 
-        TextView tip = UiUtil.text(this, "共 " + total + " 章，可指定要下载的章节范围。\n"
-                + "将保存为明文 TXT 到「下载/小说下载器」目录。", 13, UiUtil.ON_SURFACE_VARIANT);
-        box.addView(tip);
+        box.addView(UiUtil.text(this, "共 " + total + " 章，可指定要下载的章节范围。\n"
+                + "保存为明文 TXT 到「下载/小说下载器」，下载过程可在下载页查看。",
+                UiUtil.TYPE_BODY_MEDIUM, UiUtil.ON_SURFACE_VARIANT));
 
-        int defFrom = clampRange(prefs().getInt(KEY_FROM, 1), 1, total);
-        int defTo = clampRange(prefs().getInt(KEY_TO, total), 1, total);
+        int defFrom = DownloadPrefs.from(this, total);
+        int defTo = DownloadPrefs.to(this, total);
 
         LinearLayout rangeRow = new LinearLayout(this);
         rangeRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -241,47 +285,48 @@ public class DetailActivity extends Activity {
         rangeRow.addView(right);
         box.addView(rangeRow);
 
-        final TextView preview = UiUtil.text(this, "", 12, UiUtil.PRIMARY);
+        final TextView preview = UiUtil.text(this, "", UiUtil.TYPE_BODY_SMALL, UiUtil.PRIMARY);
         preview.setTypeface(Typeface.DEFAULT_BOLD);
         preview.setPadding(0, UiUtil.dp(this, 10), 0, 0);
         box.addView(preview);
 
-        box.addView(UiKit.fieldLabel(this, "下载线程数（1 - " + Downloader.MAX_THREADS
-                + "，默认 " + Downloader.DEFAULT_THREADS + "）"));
-        final EditText etThreads = UiKit.textField(this, String.valueOf(threads),
-                InputType.TYPE_CLASS_NUMBER);
-        etThreads.setText(String.valueOf(threads));
-        etThreads.setSelection(etThreads.getText().length());
-        box.addView(etThreads);
-
-        box.addView(UiKit.fieldLabel(this, "文字转换"));
-        final int[] conv = {convMode};
-        final int[] modes = {CharConv.NONE, CharConv.T2S, CharConv.S2T};
-        final String[] convNames = {"不转换", "繁 → 简", "简 → 繁"};
-        final TextView[] convChips = new TextView[3];
-        LinearLayout convRow = new LinearLayout(this);
-        convRow.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams crlp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        crlp.topMargin = UiUtil.dp(this, 2);
-        convRow.setLayoutParams(crlp);
-        for (int i = 0; i < 3; i++) {
+        box.addView(UiKit.fieldLabel(this, "导出格式"));
+        final int[] fmt = {DownloadPrefs.format(this)};
+        final String[] fmtNames = Exporter.formatNames();
+        final int[] fmtValues = {Exporter.FORMAT_TXT, Exporter.FORMAT_SPLIT,
+                Exporter.FORMAT_EPUB};
+        final TextView[] fmtChips = new TextView[fmtValues.length];
+        LinearLayout fmtRow = new LinearLayout(this);
+        fmtRow.setOrientation(LinearLayout.HORIZONTAL);
+        for (int i = 0; i < fmtValues.length; i++) {
             final int idx = i;
-            TextView chip = convChip(convNames[i], conv[0] == modes[i]);
+            TextView chip = UiKit.choiceChip(this, fmtNames[i], fmt[0] == fmtValues[i]);
             LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(0,
                     ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            clp.rightMargin = UiUtil.dp(this, 8);
+            clp.rightMargin = UiUtil.dp(this, 6);
             chip.setLayoutParams(clp);
             chip.setOnClickListener(v -> {
-                conv[0] = modes[idx];
-                for (int k = 0; k < 3; k++) {
-                    styleConvChip(convChips[k], conv[0] == modes[k]);
+                fmt[0] = fmtValues[idx];
+                for (int k = 0; k < fmtChips.length; k++) {
+                    restyleChip(fmtChips[k], fmtNames[k], fmt[0] == fmtValues[k]);
                 }
             });
-            convChips[i] = chip;
-            convRow.addView(chip);
+            fmtChips[i] = chip;
+            fmtRow.addView(chip);
         }
-        box.addView(convRow);
+        box.addView(fmtRow);
+
+        final TextView preview2 = UiUtil.text(this, "文件名："
+                        + DownloadPrefs.previewName(this, bookName == null ? "书名" : bookName),
+                UiUtil.TYPE_LABEL_SMALL, UiUtil.ON_SURFACE_VARIANT);
+        preview2.setPadding(0, UiUtil.dp(this, 6), 0, 0);
+        box.addView(preview2);
+
+        TextView current = UiUtil.text(this, "当前线程 " + threads + " · "
+                + DownloadPrefs.convName(convMode) + "（在设置页修改）",
+                UiUtil.TYPE_LABEL_SMALL, UiUtil.ON_SURFACE_VARIANT);
+        current.setPadding(0, UiUtil.dp(this, 8), 0, 0);
+        box.addView(current);
 
         TextWatcher watcher = new TextWatcher() {
             @Override
@@ -294,8 +339,10 @@ public class DetailActivity extends Activity {
 
             @Override
             public void afterTextChanged(Editable s) {
-                int f = clampRange(parseInt(etFrom.getText().toString(), 1), 1, total);
-                int t2 = clampRange(parseInt(etTo.getText().toString(), total), 1, total);
+                int f = DownloadPrefs.clampRange(
+                        parseInt(etFrom.getText().toString(), 1), 1, total);
+                int t2 = DownloadPrefs.clampRange(
+                        parseInt(etTo.getText().toString(), total), 1, total);
                 if (f > t2) {
                     preview.setText("起始不能大于结束");
                 } else {
@@ -311,29 +358,38 @@ public class DetailActivity extends Activity {
                 .setTitle("下载设置")
                 .setView(box)
                 .setPositiveButton("开始下载", (d, w) -> {
-                    int from = clampRange(parseInt(etFrom.getText().toString(), 1), 1, total);
-                    int to = clampRange(parseInt(etTo.getText().toString(), total), 1, total);
+                    int from = DownloadPrefs.clampRange(
+                            parseInt(etFrom.getText().toString(), 1), 1, total);
+                    int to = DownloadPrefs.clampRange(
+                            parseInt(etTo.getText().toString(), total), 1, total);
                     if (from > to) {
                         Toast.makeText(this, "起始章节不能大于结束章节", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    int th = Downloader.clampThreads(
-                            parseInt(etThreads.getText().toString(), threads));
-                    int cv = clampConv(conv[0]);
-                    threads = th;
-                    convMode = cv;
-                    prefs().edit()
-                            .putInt(KEY_THREADS, th)
-                            .putInt(KEY_FROM, from)
-                            .putInt(KEY_TO, to)
-                            .putInt(KEY_CONV, cv)
-                            .apply();
-                    doDownload(chapters.subList(from - 1, to), th, cv);
+                    DownloadPrefs.setRange(this, from, to);
+                    DownloadPrefs.setFormat(this, fmt[0]);
+                    selFrom = from;
+                    selTo = to;
+                    updateDownloadBtn();
+                    doDownload(chapters.subList(from - 1, to));
                 })
                 .setNegativeButton("取消", null)
                 .create();
         dlg.show();
         tintDialogButtons(dlg);
+    }
+
+    /** 切换选中态后重建芯片外观（背景与文字色都随选中态变）。 */
+    private void restyleChip(TextView chip, String text, boolean on) {
+        chip.setTextColor(on ? UiUtil.ON_SECONDARY_CONTAINER : UiUtil.ON_SURFACE_VARIANT);
+        if (on) {
+            chip.setBackground(UiUtil.ripple(UiUtil.ON_SECONDARY_CONTAINER,
+                    UiUtil.round(UiUtil.SECONDARY_CONTAINER, UiUtil.SHAPE_SMALL, this), this));
+        } else {
+            chip.setBackground(UiUtil.ripple(UiUtil.ON_SURFACE_VARIANT,
+                    UiUtil.roundStroke(android.graphics.Color.TRANSPARENT, UiUtil.SHAPE_SMALL,
+                            UiUtil.OUTLINE_VARIANT, 1, this), this));
+        }
     }
 
     /** MD3 风格的对话框按钮配色。 */
@@ -350,91 +406,37 @@ public class DetailActivity extends Activity {
         }
     }
 
-    private static int clampRange(int v, int min, int max) {
-        if (v < min) {
-            return min;
-        }
-        return Math.min(v, max);
-    }
-
-    private static int clampConv(int v) {
-        if (v < CharConv.NONE || v > CharConv.S2T) {
-            return CharConv.NONE;
-        }
-        return v;
-    }
-
-    /** 繁简转换选项芯片。 */
-    private TextView convChip(String text, boolean on) {
-        TextView t = UiUtil.text(this, text, 13, UiUtil.ON_SURFACE_VARIANT);
-        t.setGravity(android.view.Gravity.CENTER);
-        t.setTypeface(Typeface.DEFAULT_BOLD);
-        int h = UiUtil.dp(this, 9);
-        t.setPadding(UiUtil.dp(this, 4), h, UiUtil.dp(this, 4), h);
-        styleConvChip(t, on);
-        return t;
-    }
-
-    private void styleConvChip(TextView t, boolean on) {
-        t.setTextColor(on ? UiUtil.ON_PRIMARY_CONTAINER : UiUtil.ON_SURFACE_VARIANT);
-        if (on) {
-            t.setBackground(UiUtil.ripple(UiUtil.ON_PRIMARY_CONTAINER,
-                    UiUtil.round(UiUtil.PRIMARY_CONTAINER, 10, this), this));
-        } else {
-            t.setBackground(UiUtil.ripple(UiUtil.ON_SURFACE_VARIANT,
-                    UiUtil.roundStroke(UiUtil.SURFACE_CONTAINER, 10,
-                            UiUtil.OUTLINE_VARIANT, 1, this), this));
-        }
-    }
-
-    private void doDownload(final List<Chapter> selected, final int threadCount, final int conv) {
+    private void doDownload(final List<Chapter> selected) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
                 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
             pendingSelection = selected;
-            pendingThreads = threadCount;
-            pendingConv = conv;
-            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_WRITE);
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQ_WRITE);
             return;
         }
-        UiKit.setEnabledText(downloadBtn, false);
-        bar.setVisibility(View.VISIBLE);
-        bar.setProgress(0);
+        if (DownloadManager.running().size() >= DownloadPrefs.MAX_JOBS) {
+            Toast.makeText(this, "同时下载的任务已达上限（" + DownloadPrefs.MAX_JOBS
+                    + " 个），请等前面的完成", Toast.LENGTH_LONG).show();
+            return;
+        }
         SearchBook book = new SearchBook(source.name, bookName,
                 author == null ? "" : author, bookUrl);
-        Downloader.download(this, source, book, selected, threadCount, conv, App.POOL, App.UI,
-                new Downloader.Progress() {
-                    @Override
-                    public void onStart(int total) {
-                        String cv = conv == CharConv.T2S ? " · 繁→简"
-                                : conv == CharConv.S2T ? " · 简→繁" : "";
-                        status.setText("开始下载，共 " + total + " 章 · "
-                                + threadCount + " 线程" + cv);
-                    }
-
-                    @Override
-                    public void onChapter(int index, int total, String title) {
-                        int pct = total == 0 ? 0 : (int) (index * 100L / total);
-                        bar.setProgress(pct);
-                        status.setText("下载中 " + index + "/" + total + "：" + title);
-                    }
-
-                    @Override
-                    public void onSuccess(String location, int words) {
-                        UiKit.setEnabledText(downloadBtn, true);
-                        bar.setProgress(100);
-                        status.setText("完成，成功 " + words + " 章 → " + location);
-                        Toast.makeText(DetailActivity.this,
-                                "已保存：" + location, Toast.LENGTH_LONG).show();
-                    }
-
-                    @Override
-                    public void onError(String message) {
-                        UiKit.setEnabledText(downloadBtn, true);
-                        status.setText(message);
-                        Toast.makeText(DetailActivity.this, message, Toast.LENGTH_LONG).show();
-                    }
-                });
+        int format = DownloadPrefs.format(this);
+        String template = DownloadPrefs.template(this);
+        // 用「整本书的章节表 + 下标范围」表达章节选择，便于暂停后按原范围继续
+        int from = chapters.indexOf(selected.get(0));
+        int to = from + selected.size() - 1;
+        if (from < 0) {
+            from = 0;
+            to = selected.size() - 1;
+        }
+        DownloadManager.start(this, source, book, chapters, threads, convMode,
+                format, template, from, to, null, DownloadPrefs.splitGroup(this));
+        Toast.makeText(this, "已加入后台下载（" + Exporter.formatName(format)
+                        + "），可在「下载」页查看进度",
+                Toast.LENGTH_LONG).show();
+        finish();
     }
 
     @Override
@@ -443,11 +445,22 @@ public class DetailActivity extends Activity {
         if (requestCode == REQ_WRITE && results.length > 0
                 && results[0] == PackageManager.PERMISSION_GRANTED) {
             if (pendingSelection != null) {
-                doDownload(pendingSelection, pendingThreads, pendingConv);
+                doDownload(pendingSelection);
                 pendingSelection = null;
             }
         } else if (requestCode == REQ_WRITE) {
             Toast.makeText(this, "需要存储权限才能保存文件", Toast.LENGTH_LONG).show();
         }
+    }
+
+    /** 进入 / 退出本页时的转场动画（淡入淡出，避免生硬跳变）。 */
+    private void applyTransitions() {
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        applyTransitions();
     }
 }

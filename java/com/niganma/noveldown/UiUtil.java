@@ -11,47 +11,99 @@ import android.view.View;
 import android.widget.TextView;
 
 /**
- * Material Design 3（MD3）风格的配色与基础图形工具。
+ * Material Design 3 设计系统：颜色、字体、形状与状态层。
  *
- * 采用 MD3 浅色主题色角色（color roles），以品牌蓝为种子色：
- *  primary / on-primary / primary-container / surface / surface-container /
- *  on-surface-variant / outline / outline-variant 等。
+ * <p>配色不是手挑的，而是以品牌蓝 <b>#4C6FFF</b> 为种子色，经 HCT
+ * （CAM16 色相/彩度 + L* 明度）色空间推导出各 tonal palette 后，按 MD3
+ * 规范映射到 color roles。surface 系列因此都带有轻微的种子色调，而不是纯灰。
+ * 浅色主题的 tone 对应：primary=40、primary-container=90、on-surface=10、
+ * surface=98、surface-container=94、surface-container-high=92、
+ * outline=50、outline-variant=80、on-surface-variant=30。</p>
  */
 public final class UiUtil {
 
-    // ---------- MD3 颜色角色（浅色主题） ----------
-    /** 主色（品牌蓝）。 */
-    public static final int PRIMARY = Color.parseColor("#4C6FFF");
-    public static final int ON_PRIMARY = Color.parseColor("#FFFFFF");
-    /** 主色容器（浅蓝，用于顶部栏、选中态）。 */
-    public static final int PRIMARY_CONTAINER = Color.parseColor("#DCE1FF");
-    public static final int ON_PRIMARY_CONTAINER = Color.parseColor("#001452");
+    // ================= MD3 颜色角色（浅色主题） =================
 
-    /** 次级容器（用于 tonal 按钮 / 未强调的选中态）。 */
-    public static final int SECONDARY_CONTAINER = Color.parseColor("#E0E1F9");
-    public static final int ON_SECONDARY_CONTAINER = Color.parseColor("#171B2C");
+    /** 主色（primary，tone 40）。 */
+    public static final int PRIMARY = Color.parseColor("#2E50D1");
+    public static final int ON_PRIMARY = Color.parseColor("#FEFDFF");
+    public static final int PRIMARY_CONTAINER = Color.parseColor("#D8E0FF");
+    public static final int ON_PRIMARY_CONTAINER = Color.parseColor("#000071");
 
-    /** 背景 surface 与卡片 surface-container。 */
-    public static final int SURFACE = Color.parseColor("#F4F4FB");
-    public static final int ON_SURFACE = Color.parseColor("#1B1B21");
-    public static final int SURFACE_CONTAINER = Color.parseColor("#FFFFFF");
-    public static final int SURFACE_CONTAINER_HIGH = Color.parseColor("#E7E8F2");
-    /** 次要文字 / 未选中内容。 */
-    public static final int ON_SURFACE_VARIANT = Color.parseColor("#5A5B66");
+    public static final int SECONDARY = Color.parseColor("#565C7D");
+    public static final int ON_SECONDARY = Color.parseColor("#FEFDFF");
+    public static final int SECONDARY_CONTAINER = Color.parseColor("#CFD8FF");
+    public static final int ON_SECONDARY_CONTAINER = Color.parseColor("#131936");
 
-    /** 描边色。 */
-    public static final int OUTLINE = Color.parseColor("#767780");
-    public static final int OUTLINE_VARIANT = Color.parseColor("#C7C8D2");
+    public static final int TERTIARY = Color.parseColor("#705569");
+    public static final int ON_TERTIARY = Color.parseColor("#FFFDFF");
+    public static final int TERTIARY_CONTAINER = Color.parseColor("#F6D9EC");
+    public static final int ON_TERTIARY_CONTAINER = Color.parseColor("#291325");
 
     public static final int ERROR = Color.parseColor("#BA1A1A");
     public static final int ON_ERROR = Color.parseColor("#FFFFFF");
+    public static final int ERROR_CONTAINER = Color.parseColor("#FFDAD6");
+    public static final int ON_ERROR_CONTAINER = Color.parseColor("#410002");
 
-    /** 状态栏 / 顶部栏底色。 */
-    public static final int TOP_BAR = PRIMARY_CONTAINER;
+    // ---- surface 层级（tone 98 / 96 / 94 / 92 / 90） ----
+    /** 页面底色（surface，tone 98）。 */
+    public static final int SURFACE = Color.parseColor("#FBF8FD");
+    public static final int ON_SURFACE = Color.parseColor("#1B1B1F");
+    /** surface-variant（tone 90）。 */
+    public static final int SURFACE_VARIANT = Color.parseColor("#E2E1EC");
+    public static final int ON_SURFACE_VARIANT = Color.parseColor("#45464F");
+
+    /** surface-container-lowest（tone 100）：列表卡片。 */
+    public static final int SURFACE_CONTAINER_LOWEST = Color.parseColor("#FFFEFF");
+    /** surface-container-low（tone 96）。 */
+    public static final int SURFACE_CONTAINER_LOW = Color.parseColor("#F5F2F7");
+    /** surface-container（tone 94）：导航栏。 */
+    public static final int SURFACE_CONTAINER = Color.parseColor("#EFEDF1");
+    /** surface-container-high（tone 92）：搜索栏等强调容器。 */
+    public static final int SURFACE_CONTAINER_HIGH = Color.parseColor("#EAE7EB");
+    /** surface-container-highest（tone 90）。 */
+    public static final int SURFACE_CONTAINER_HIGHEST = Color.parseColor("#E4E1E6");
+
+    public static final int OUTLINE = Color.parseColor("#767680");
+    public static final int OUTLINE_VARIANT = Color.parseColor("#C6C5D0");
+
+    public static final int INVERSE_SURFACE = Color.parseColor("#303034");
+    public static final int INVERSE_ON_SURFACE = Color.parseColor("#F2EFF4");
+    public static final int INVERSE_PRIMARY = Color.parseColor("#B5C2FF");
+
+    // ================= 状态层不透明度 =================
+    // MD3 规定：hover 8% / focus 10% / pressed 10% / dragged 16%
+
+    public static final float STATE_PRESSED = 0.10f;
+    public static final float STATE_HOVER = 0.08f;
+
+    // ================= 形状（shape scale） =================
+
+    public static final int SHAPE_NONE = 0;
+    public static final int SHAPE_EXTRA_SMALL = 4;
+    public static final int SHAPE_SMALL = 8;
+    public static final int SHAPE_MEDIUM = 12;
+    public static final int SHAPE_LARGE = 16;
+    public static final int SHAPE_EXTRA_LARGE = 28;
+    /** 全圆角（胶囊 / 圆形图标按钮）。 */
+    public static final int SHAPE_FULL = 999;
+
+    // ================= 字体（type scale，单位 sp） =================
+
+    public static final float TYPE_HEADLINE_SMALL = 24;
+    public static final float TYPE_TITLE_LARGE = 22;
+    public static final float TYPE_TITLE_MEDIUM = 16;
+    public static final float TYPE_TITLE_SMALL = 14;
+    public static final float TYPE_BODY_LARGE = 16;
+    public static final float TYPE_BODY_MEDIUM = 14;
+    public static final float TYPE_BODY_SMALL = 12;
+    public static final float TYPE_LABEL_LARGE = 14;
+    public static final float TYPE_LABEL_MEDIUM = 12;
+    public static final float TYPE_LABEL_SMALL = 11;
 
     private UiUtil() {}
 
-    // ---------- 尺寸 ----------
+    // ================= 尺寸 =================
 
     public static int dp(View v, float value) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
@@ -68,12 +120,13 @@ public final class UiUtil {
                 c.getResources().getDisplayMetrics());
     }
 
-    // ---------- 图形 ----------
+    // ================= 图形 =================
 
     public static GradientDrawable round(int color, float radiusDp, Context c) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(color);
-        d.setCornerRadius(dp(c, radiusDp));
+        d.setCornerRadius(radiusDp >= SHAPE_FULL
+                ? dp(c, SHAPE_FULL / 2f) : dp(c, radiusDp));
         return d;
     }
 
@@ -84,11 +137,47 @@ public final class UiUtil {
         return d;
     }
 
-    /** 圆角矩形 + MD3 涟漪按压反馈，用于按钮、列表项、芯片等可点元素。 */
+    /**
+     * 圆角矩形 + MD3 状态层涟漪，用于按钮、列表项、芯片等可点元素。
+     *
+     * @param contentColor 状态层着色来源（通常是容器上的前景色）
+     */
     public static Drawable ripple(int contentColor, GradientDrawable shape, Context c) {
-        int r = Color.argb(38, Color.red(contentColor), Color.green(contentColor),
-                Color.blue(contentColor));
+        return ripple(contentColor, shape, STATE_PRESSED, c);
+    }
+
+    /** 指定状态层不透明度的涟漪。 */
+    public static Drawable ripple(int contentColor, GradientDrawable shape,
+                                  float alpha, Context c) {
+        int r = Color.argb((int) (alpha * 255),
+                Color.red(contentColor), Color.green(contentColor), Color.blue(contentColor));
         return new RippleDrawable(ColorStateList.valueOf(r), shape, null);
+    }
+
+    /** 圆形状态层：满足 MD3「状态层只画在形状内」的要求。 */
+    public static Drawable circleRipple(int contentColor, Context c) {
+        return circleRipple(contentColor, STATE_PRESSED, c);
+    }
+
+    public static Drawable circleRipple(int contentColor, float alpha, Context c) {
+        int r = Color.argb((int) (alpha * 255),
+                Color.red(contentColor), Color.green(contentColor), Color.blue(contentColor));
+        GradientDrawable oval = new GradientDrawable();
+        oval.setShape(GradientDrawable.OVAL);
+        oval.setColor(Color.TRANSPARENT);
+        return new RippleDrawable(ColorStateList.valueOf(r), oval, oval);
+    }
+
+    /**
+     * 指定遮罩的涟漪：状态层只画在 {@code mask} 覆盖的范围内。
+     *
+     * <p>底部导航栏用它把涟漪限制在图标胶囊区域——整条导航项都铺满涟漪不像 MD3。</p>
+     */
+    public static Drawable rippleMasked(int contentColor, android.graphics.drawable.Drawable mask,
+                                        Context c) {
+        int r = Color.argb((int) (STATE_PRESSED * 255),
+                Color.red(contentColor), Color.green(contentColor), Color.blue(contentColor));
+        return new RippleDrawable(ColorStateList.valueOf(r), null, mask);
     }
 
     public static int rippleColorFor(int bg) {
@@ -101,7 +190,14 @@ public final class UiUtil {
         return lum > 160;
     }
 
-    // ---------- 文本 ----------
+    /** 水平细分割线（outline-variant）。 */
+    public static View hairline(Context c, int color) {
+        View v = new View(c);
+        v.setBackgroundColor(color);
+        return v;
+    }
+
+    // ================= 文本 =================
 
     public static TextView text(Context c, String s, float sizeSp, int color) {
         TextView t = new TextView(c);
@@ -109,5 +205,32 @@ public final class UiUtil {
         t.setTextSize(sizeSp);
         t.setTextColor(color);
         return t;
+    }
+
+    /**
+     * 按 MD3 type scale 创建文本。
+     *
+     * @param emphasize true 时使用 medium/bold 字重（用于 title、label 与强调正文）
+     */
+    public static TextView styled(Context c, String s, float sizeSp, int color,
+                                  boolean emphasize) {
+        TextView t = text(c, s, sizeSp, color);
+        if (emphasize) {
+            t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        }
+        return t;
+    }
+
+    /**
+     * 正文行高（MD3：body-large 24sp、body-medium 20sp、body-small 16sp）。
+     */
+    public static float lineHeightFor(float sizeSp) {
+        if (sizeSp >= 16) {
+            return 24;
+        }
+        if (sizeSp >= 14) {
+            return 20;
+        }
+        return 16;
     }
 }

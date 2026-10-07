@@ -2,36 +2,31 @@ package com.niganma.noveldown;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.res.ColorStateList;
-import android.graphics.Typeface;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-/** 书源管理 + 关于 / 署名。 */
+/** 关于：应用信息、GitHub 地址与免责声明（力求简洁）。 */
 public class AboutActivity extends Activity {
 
-    private TextView count;
+    private static final String GITHUB = "https://github.com/a11122333/NovelDownloader";
+
+    private static final String DESCRIPTION =
+            "从多个书源并发搜索小说，解析目录后按需下载正文，导出为明文 TXT。";
+
 
     private static final String FORMAT_DOC =
             "自定义书源格式（JSON 数组，每项一个书源）\n\n"
             + "{\n"
             + "  \"name\": \"书源名\",\n"
             + "  \"charset\": \"utf-8\",\n"
-            + "  \"searchUrl\": \"https://站点/search?q={{key}}&p={{page}}\",\n"
+            + "  \"searchUrl\": \"https://站点/search?q={{key}}&p={{page}}\",\n  \"searchMethod\": \"post\", \"searchBody\": \"searchkey={{key}}\", \"warmUp\": \"https://站点/\",\n"
             + "  \"listRule\": \"搜索页正则，组1=书籍链接，组2=书名，组3=作者(可选)\",\n"
             + "  \"chapterList\": \"目录页正则，组1=章节链接，组2=章节标题\",\n"
             + "  \"contentRule\": \"正文页正则，组1=正文HTML\",\n"
@@ -47,17 +42,23 @@ public class AboutActivity extends Activity {
             + "· 正文会依次执行 replace 里的正则替换清洗成纯文本。\n"
             + "· 配置 tocPages / contentPages 可自动翻页合并目录与正文分页。\n"
             + "· indexChapters 内含 lastIdRule / catalogRule / urlTemplate，"
-            + "用于目录由 JS 生成、页面无章节链接的站点（由最新章节ID+目录下标反推章节URL）。\n"
+            + "用于目录由 JS 生成、页面无章节链接的站点。\n"
             + "· 若省略 chapterList，则把详情页当作单章下载。\n"
             + "· 下载支持指定章节范围，并可调节多线程数 1 - " + Downloader.MAX_THREADS
             + "（默认 " + Downloader.DEFAULT_THREADS + "）。\n"
             + "· 导出的 TXT 为明文，不含任何加密。";
+
+    private static final String DISCLAIMER =
+            "仅供学习与技术交流使用，请勿用于商业用途，下载后请在 24 小时内删除。\n"
+            + "书籍版权归原作者及发布站点所有。\n"
+            + "应用完全在本地运行，不收集、不上传任何数据。";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         UiKit.applyStatusBar(this);
         setContentView(buildUi());
+        applyTransitions();
     }
 
     private View buildUi() {
@@ -65,7 +66,7 @@ public class AboutActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(UiUtil.SURFACE);
 
-        root.addView(UiKit.backHeader(this, "书源 / 关于", new Runnable() {
+        root.addView(UiKit.backHeader(this, "关于", new Runnable() {
             @Override
             public void run() {
                 finish();
@@ -75,185 +76,152 @@ public class AboutActivity extends Activity {
         ScrollView sv = new ScrollView(this);
         sv.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        sv.setVerticalScrollBarEnabled(false);
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(UiUtil.dp(this, 16), UiUtil.dp(this, 14), UiUtil.dp(this, 16), UiUtil.dp(this, 28));
+        col.setPadding(UiUtil.dp(this, 16), UiUtil.dp(this, 12),
+                UiUtil.dp(this, 16), UiUtil.dp(this, 24));
         sv.addView(col);
 
-        col.addView(cardSources());
+        col.addView(cardApp());
         col.addView(UiKit.spacer(this, 12));
-        col.addView(cardAbout());
+        col.addView(cardLinks());
         col.addView(UiKit.spacer(this, 12));
         col.addView(cardDoc());
+        col.addView(UiKit.spacer(this, 12));
+        col.addView(cardDisclaimer());
 
         root.addView(sv);
         return root;
     }
 
-    private View cardAbout() {
+    /** 应用信息：名称、版本、署名与一句话简介。 */
+    private View cardApp() {
         LinearLayout card = UiKit.card(this);
-        TextView name = UiUtil.text(this, App.APP_NAME, 22, UiUtil.ON_SURFACE);
-        name.setTypeface(Typeface.DEFAULT_BOLD);
+
+        TextView name = UiUtil.text(this, App.APP_NAME, UiUtil.TYPE_HEADLINE_SMALL, UiUtil.ON_SURFACE);
+        name.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         card.addView(name);
 
-        TextView credit = UiUtil.text(this, App.CREDIT, 16, UiUtil.PRIMARY);
-        credit.setTypeface(Typeface.DEFAULT_BOLD);
-        credit.setPadding(0, UiUtil.dp(this, 8), 0, 0);
+        TextView ver = UiUtil.text(this, "版本 " + App.version(this),
+                UiUtil.TYPE_BODY_MEDIUM, UiUtil.PRIMARY);
+        ver.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        ver.setPadding(0, UiUtil.dp(this, 4), 0, 0);
+        card.addView(ver);
+
+        TextView credit = UiUtil.text(this, App.CREDIT, UiUtil.TYPE_BODY_SMALL,
+                UiUtil.ON_SURFACE_VARIANT);
+        credit.setPadding(0, UiUtil.dp(this, 4), 0, 0);
         card.addView(credit);
 
-        TextView v = UiUtil.text(this, "版本 " + App.version(this) + "  ·  纯本地运行，无广告、无联网上报",
-                12, UiUtil.ON_SURFACE_VARIANT);
-        v.setPadding(0, UiUtil.dp(this, 8), 0, 0);
-        card.addView(v);
+        TextView desc = UiUtil.text(this, DESCRIPTION, UiUtil.TYPE_BODY_MEDIUM,
+                UiUtil.ON_SURFACE_VARIANT);
+        desc.setPadding(0, UiUtil.dp(this, 12), 0, 0);
+        desc.setLineSpacing(UiUtil.dp(this, 4), 1f);
+        card.addView(desc);
         return card;
     }
 
-    private View cardSources() {
+    /** 链接：GitHub 仓库地址，点击用浏览器打开。 */
+    private View cardLinks() {
         LinearLayout card = UiKit.card(this);
-        card.addView(UiKit.sectionTitle(this, "书源管理"));
+        card.setPadding(UiUtil.dp(this, 8), UiUtil.dp(this, 8),
+                UiUtil.dp(this, 8), UiUtil.dp(this, 8));
 
-        count = UiUtil.text(this, "", 12, UiUtil.ON_SURFACE_VARIANT);
-        count.setPadding(0, UiUtil.dp(this, 6), 0, UiUtil.dp(this, 10));
-        card.addView(count);
-        refreshCount();
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setMinimumHeight(UiUtil.dp(this, 56));
+        int h = UiUtil.dp(this, 12);
+        row.setPadding(h, h, h, h);
+        row.setBackground(UiUtil.ripple(UiUtil.PRIMARY,
+                UiUtil.round(UiUtil.SURFACE_CONTAINER_HIGH, UiUtil.SHAPE_MEDIUM, this), this));
+        row.setOnClickListener(v -> openGithub());
 
-        card.addView(UiKit.listRow(this, "启用 / 停用书源", new Runnable() {
-            @Override
-            public void run() {
-                manageSources();
-            }
-        }));
-        card.addView(UiKit.spacer(this, 8));
-        card.addView(UiKit.listRow(this, "从剪贴板导入书源", new Runnable() {
-            @Override
-            public void run() {
-                importFromClipboard();
-            }
-        }));
-        card.addView(UiKit.spacer(this, 8));
-        card.addView(UiKit.listRow(this, "清空自定义书源", new Runnable() {
-            @Override
-            public void run() {
-                confirmClearUser();
-            }
-        }));
+        LinearLayout info = new LinearLayout(this);
+        info.setOrientation(LinearLayout.VERTICAL);
+        info.setLayoutParams(new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView title = UiUtil.text(this, "GitHub 开源地址", UiUtil.TYPE_TITLE_MEDIUM,
+                UiUtil.ON_SURFACE);
+        info.addView(title);
+
+        TextView link = UiUtil.text(this, GITHUB, UiUtil.TYPE_BODY_SMALL, UiUtil.PRIMARY);
+        link.setSingleLine(true);
+        link.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        link.setPadding(0, UiUtil.dp(this, 3), 0, 0);
+        info.addView(link);
+        row.addView(info);
+
+        TextView arrow = UiUtil.text(this, "›", 20, UiUtil.ON_SURFACE_VARIANT);
+        row.addView(arrow);
+        card.addView(row);
         return card;
     }
 
+    /** 书源规则说明：默认折叠成一行，点开在可滚动弹窗里展示完整文档。 */
     private View cardDoc() {
         LinearLayout card = UiKit.card(this);
-        card.addView(UiKit.sectionTitle(this, "书源规则说明"));
-        TextView doc = UiUtil.text(this, FORMAT_DOC, 12, UiUtil.ON_SURFACE_VARIANT);
-        doc.setPadding(0, UiUtil.dp(this, 8), 0, 0);
-        doc.setTextIsSelectable(true);
-        doc.setLineSpacing(UiUtil.dp(this, 2), 1f);
-        card.addView(doc);
+        card.setPadding(UiUtil.dp(this, 8), UiUtil.dp(this, 8),
+                UiUtil.dp(this, 8), UiUtil.dp(this, 8));
+        card.addView(UiKit.listRow(this, "书源规则说明", new Runnable() {
+            @Override
+            public void run() {
+                showDocDialog();
+            }
+        }));
         return card;
     }
 
-    private void refreshCount() {
-        int all = SourceStore.all(this).size();
-        int enabled = SourceStore.load(this).size();
-        int custom = SourceStore.userCount(this);
-        count.setText("共 " + all + " 个书源（内置 " + (all - custom) + " · 自定义 " + custom
-                + "）  ·  已启用 " + enabled + " 个");
-    }
-
-    /** 弹出书源勾选列表，保存启用 / 停用状态。 */
-    private void manageSources() {
-        final List<BookSource> all = SourceStore.all(this);
-        if (all.isEmpty()) {
-            Toast.makeText(this, "暂无书源", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        final Set<String> builtin = SourceStore.builtinNames(this);
-        final Set<String> disabled = SourceStore.disabledNames(this);
-
+    /** 展示完整书源规则文档（内容较长，放在可滚动弹窗里）。 */
+    private void showDocDialog() {
         ScrollView sv = new ScrollView(this);
-        LinearLayout col = new LinearLayout(this);
-        col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(UiUtil.dp(this, 4), UiUtil.dp(this, 4), UiUtil.dp(this, 4), 0);
+        int pad = UiUtil.dp(this, 16);
+        sv.setPadding(pad, UiUtil.dp(this, 8), pad, pad);
 
-        final List<CheckBox> boxes = new ArrayList<>();
-        for (BookSource s : all) {
-            CheckBox cb = new CheckBox(this);
-            cb.setText(s.name + (builtin.contains(s.name) ? "（内置）" : "（自定义）"));
-            cb.setChecked(!disabled.contains(s.name));
-            cb.setTextSize(15);
-            cb.setTextColor(UiUtil.ON_SURFACE);
-            cb.setButtonTintList(ColorStateList.valueOf(UiUtil.PRIMARY));
-            int vp = UiUtil.dp(this, 6);
-            cb.setPadding(0, vp, 0, vp);
-            boxes.add(cb);
-            col.addView(cb);
-        }
-        sv.addView(col);
+        TextView doc = UiUtil.text(this, FORMAT_DOC, UiUtil.TYPE_BODY_SMALL,
+                UiUtil.ON_SURFACE_VARIANT);
+        doc.setTextIsSelectable(true);
+        doc.setLineSpacing(UiUtil.dp(this, 3), 1f);
+        sv.addView(doc);
 
         AlertDialog dlg = new AlertDialog.Builder(this)
-                .setTitle("启用 / 停用书源")
+                .setTitle("书源规则说明")
                 .setView(sv)
-                .setPositiveButton("保存", (d, w) -> {
-                    Set<String> off = new HashSet<>();
-                    for (int i = 0; i < boxes.size(); i++) {
-                        if (!boxes.get(i).isChecked()) {
-                            off.add(all.get(i).name);
-                        }
-                    }
-                    SourceStore.setDisabledNames(this, off);
-                    refreshCount();
-                    Toast.makeText(this, "已保存，当前启用 " + (boxes.size() - off.size())
-                            + " 个书源", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("取消", null)
+                .setPositiveButton("关闭", null)
                 .create();
         dlg.show();
         dlg.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(UiUtil.PRIMARY);
-        dlg.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(UiUtil.ON_SURFACE_VARIANT);
     }
 
-    private void importFromClipboard() {
-        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        if (cm == null || !cm.hasPrimaryClip()) {
-            Toast.makeText(this, "剪贴板为空", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        ClipData cd = cm.getPrimaryClip();
-        if (cd == null || cd.getItemCount() == 0) {
-            Toast.makeText(this, "剪贴板为空", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String text = String.valueOf(cd.getItemAt(0).coerceToText(this));
-        Object[] res = SourceStore.importJson(this, text);
-        int ok = (Integer) res[0];
-        String err = (String) res[1];
-        if (err != null) {
-            Toast.makeText(this, err, Toast.LENGTH_LONG).show();
-        } else if (ok == 0) {
-            Toast.makeText(this, "没有解析到有效书源（需含 contentRule，且含 searchUrl+listRule 或 indexChapters）",
-                    Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(this, "成功导入 " + ok + " 个书源", Toast.LENGTH_LONG).show();
-        }
-        refreshCount();
+    private View cardDisclaimer() {
+        LinearLayout card = UiKit.card(this);
+        card.addView(UiKit.sectionTitle(this, "免责声明"));
+        TextView body = UiUtil.text(this, DISCLAIMER, UiUtil.TYPE_BODY_SMALL,
+                UiUtil.ON_SURFACE_VARIANT);
+        body.setPadding(0, UiUtil.dp(this, 8), 0, 0);
+        body.setLineSpacing(UiUtil.dp(this, 4), 1f);
+        card.addView(body);
+        return card;
     }
 
-    private void confirmClearUser() {
-        if (SourceStore.userCount(this) == 0) {
-            Toast.makeText(this, "没有自定义书源", Toast.LENGTH_SHORT).show();
-            return;
+    private void openGithub() {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB)));
+        } catch (Exception e) {
+            Toast.makeText(this, GITHUB, Toast.LENGTH_LONG).show();
         }
-        AlertDialog dlg = new AlertDialog.Builder(this)
-                .setTitle("清空自定义书源")
-                .setMessage("将删除所有导入的书源（内置书源保留）。")
-                .setPositiveButton("清空", (d, w) -> {
-                    SourceStore.clearUser(this);
-                    refreshCount();
-                    Toast.makeText(this, "已清空", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("取消", null)
-                .create();
-        dlg.show();
-        dlg.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(UiUtil.ERROR);
-        dlg.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(UiUtil.ON_SURFACE_VARIANT);
+    }
+
+    /** 进入 / 退出本页时的转场动画（淡入淡出，避免生硬跳变）。 */
+    private void applyTransitions() {
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        applyTransitions();
     }
 }
