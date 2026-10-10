@@ -111,8 +111,18 @@ bash build.sh
 
 - 新增番茄小说书源；链接打开支持批量解析与勾选。
 
+## 许可证
+
+本项目采用 **[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)**，仅限非商业用途：
+允许个人使用，以及慈善机构、教育机构、公共研究机构等非营利组织的非商业使用；商业使用需另行取得授权。
+完整条款见 [LICENSE](LICENSE)。
+
+Copyright (c) 2026 a11122333
+
 ## 第三方资源
 
 - 繁简转换单字表（`assets/ts.txt`、`assets/st.txt`）派生自 [OpenCC](https://github.com/BYVoid/OpenCC)（Apache-2.0）。
 - 界面图标取自 [Google Material Design Icons](https://github.com/google/material-design-icons)（Apache-2.0），
   已转为 Android Vector Drawable，填充色由代码 tint 指定。
+
+以上第三方组件按其自身许可授权，独立于本项目的许可。
